@@ -34,6 +34,8 @@
 #include "vti_as.h"
 #endif
 
+#include "vti_ps.h"
+
 #define ALL_BUTTONS 0x1F
 
 /* contains buttons currently held down */
@@ -178,6 +180,10 @@ void PORT2_ISR(void)
     if ((P2IFG & AS_INT_PIN) == AS_INT_PIN)
         as_last_interrupt = 1;
     #endif
+
+	/* Check if pressure interrupt flag */
+    if ((P2IFG & PS_INT_PIN) == PS_INT_PIN)
+        ps_last_interrupt = 1;
 
     /* A write to the interrupt vector, automatically clears the
      latest interrupt */

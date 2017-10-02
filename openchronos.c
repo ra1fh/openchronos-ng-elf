@@ -113,6 +113,13 @@ void handle_events(void)
         menu_timeout_poll();
     }
 
+	// Event from : "driver/pressure"
+	if(ps_last_interrupt)
+	{
+		msg |= SYS_MSG_PS_INT;
+		ps_last_interrupt = 0;
+	}
+
 #ifdef CONFIG_BATTERY_MONITOR
     /* drivers/battery */
     if (msg & SYS_MSG_RTC_MINUTE) {

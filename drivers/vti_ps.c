@@ -44,15 +44,7 @@
 
 // driver
 #include "vti_ps.h"
-//#include "timer.h"
-
-//TODO: see what we should do with tis
-#define CONFIG_FIXEDPOINT_MATH
-
-#ifdef CONFIG_FIXEDPOINT_MATH
-#include "dsp.h"
-#endif
-
+#include "timer.h"
 
 // *************************************************************************************************
 // Prototypes section
@@ -61,7 +53,6 @@ uint8_t ps_write_register(uint8_t address, uint8_t data);
 uint8_t ps_twi_read(uint8_t ack);
 void twi_delay(void);
 
-
 // *************************************************************************************************
 // Defines section
 
@@ -69,18 +60,13 @@ void twi_delay(void);
 // *************************************************************************************************
 // Global Variable section
 
-#ifndef CONFIG_FIXEDPOINT_MATH
-// VTI pressure (hPa) to altitude (m) conversion tables
-const int16_t h0[17] = { -153, 0, 111, 540, 989, 1457, 1949, 2466, 3012, 3591, 4206, 4865, 5574, 6344, 7185, 8117, 9164 };
-const uint16_t p0[17] = { 1031, 1013, 1000, 950, 900, 850, 800, 750, 700, 650, 600, 550, 500, 450, 400, 350, 300 };
-float p[17];
-#else
-// Storage for pressure to altitude conversions
-static int16_t pLast; // Last measured pressure in 4Pa units
-static int16_t pRef; // Reference pressure at sea level in 4Pa units
-static int16_t hLast; // Last altitude estimate in normalized units b/H0/2^15
-#endif
 
+// VTI pressure (hPa) to altitude (m) conversion tables
+const int16_t h0[17] =
+    { -153, 0, 111, 540, 989, 1457, 1949, 2466, 3012, 3591, 4206, 4865, 5574, 6344, 7185, 8117, 9164 };
+const uint16_t p0[17] =
+    { 1031, 1013, 1000, 950, 900, 850, 800, 750, 700, 650, 600, 550, 500, 450, 400, 350, 300 };
+float p[17];
 
 // Global flag for proper pressure sensor operation
 uint8_t ps_ok;
@@ -88,7 +74,6 @@ uint8_t ps_ok;
 
 // *************************************************************************************************
 // Extern section
-
 
 
 // *************************************************************************************************
@@ -111,13 +96,13 @@ void ps_init(void)
     ps_ok = 0;
 
     // 100msec delay to allow VDD stabilisation
-    //Timer0_A4_Delay(CONV_MS_TO_TICKS(100));
+    timer0_delay(100, LPM3_bits);
 
     // Reset pressure sensor -> powerdown sensor
     success = ps_write_register(0x06, 0x01);
 
     // 100msec delay
-    //Timer0_A4_Delay(CONV_MS_TO_TICKS(100));
+    timer0_delay(100, LPM3_bits);
 
     // Check if STATUS register BIT0 is cleared
     status = ps_read_register(0x07, PS_TWI_8BIT_ACCESS);
@@ -140,8 +125,15 @@ void ps_init(void)
 // *************************************************************************************************
 void ps_start(void)
 {
+	// Enable DRDY IRQ on rising edge
+	PS_INT_IFG &= ~PS_INT_PIN;
+	PS_INT_IE |= PS_INT_PIN;
+
     // Start sampling data in ultra low power mode
     ps_write_register(0x03, 0x0B);
+
+	// 200ms needed to have a working interrupt
+	timer0_delay(200, LPM3_bits);
 }
 
 
@@ -154,8 +146,15 @@ void ps_start(void)
 // *************************************************************************************************
 void ps_stop(void)
 {
-    // Put sensor to standby
+ 	// Disable DRDY IRQ
+	PS_INT_IE  &= ~PS_INT_PIN;
+	PS_INT_IFG &= ~PS_INT_PIN;
+	
+	// Put sensor to standby
     ps_write_register(0x03, 0x00);
+
+	// 200ms needed ? FIXME
+	timer0_delay(200, LPM3_bits);
 }
 
 
@@ -394,7 +393,7 @@ uint16_t ps_read_register(uint8_t address, uint8_t mode)
 // *************************************************************************************************
 uint32_t ps_get_pa(void)
 {
-    volatile uint32_t data = 0;
+    uint32_t data = 0;
 
     // Get 3 MSB from DATARD8 register
     data = ps_read_register(0x7F, PS_TWI_8BIT_ACCESS);
@@ -453,68 +452,11 @@ uint16_t ps_get_temp(void)
 // *************************************************************************************************
 void init_pressure_table(void)
 {
-#ifndef CONFIG_FIXEDPOINT_MATH
     uint8_t i;
 
-    for (i = 0; i < 17; i++) p[i] = p0[i];
-
-#else
-    pLast = 101325 / 4; // Last measured pressure in 4Pa units
-    pRef = 101325 / 4; // Reference pressure at sea level in 4Pa units
-    hLast = 0;
-#endif
+    for (i = 0; i < 17; i++)
+		p[i] = p0[i];
 }
-
-#ifdef CONFIG_FIXEDPOINT_MATH
-// *************************************************************************************************
-// @fn          conv_altitude_to_fraction
-// @brief       Relative pressure deviation from reference pressure for given altitude estimate.
-// @param       int16_t hh Altitude estimate (in normalised units).
-// @return      Calculated relative pressure deviation for this altitude
-// *************************************************************************************************
-int16_t conv_altitude_to_fraction(int16_t hh)
-{
-    /*
-    The fixed part of the function of altitude can be broken into tabulated ranges
-    and/or interpolated according to a Taylor series expansion
-         (1 - f) = (1 � h/H0)^b
-                 = 1 - h*b/H0 + h^2*b*(b�1)/2/H0^2 � h^3*b8(b�1)*(b-2)/6/H0^3 + �
-    At low altitudes h/H0 << 1, so this series tends to converge rapidly and is
-    well-suited for fixed point implementation. With one or two additional terms
-    the series converges accurately over the range of interest so there is no need
-    for table interpolation. For the proposed fixed point implementation we rewrite
-    this expression a bit into
-        hh = b*h/H0
-        (1 - f) = (1 � h/H0)^b
-                = 1 - hh*(1 � hh*(b�1)/2/b*(1 � hh*(b�2)/3/b*(...
-    We stick to integer multiply and shift operations. Signed int16_t values can contain
-    values +/�2^15 and unsigned uint16_t values 0..2^16. In C multiplication amounts to
-    expanding to int32_t, integer multiply and scaling back by a proper shift operation.
-
-    Given the above equations the natural unit of hh as the first order correction is
-    H0/b = 8434.48m. If we accept this as a maximum +/� range we can store int16_t hh in
-    units of (H0/b)/2^15 = 0,26m which keeps the resolution at less than a foot.
-     */
-    int16_t f, hf;
-    // f  = hh*(b � 4)/5/b, correction relevant above 3.5km:
-    // (Could be omitted, but it is relatively little work.)
-    f = mult_scale16(hh, 3132);
-    // f  = hh*(b � 3)/4/b*(1 - f), correction relevant above 1.3km:
-    hf = mult_scale16(hh, 7032);
-    f = hf - mult_scale15(hf, f);
-    // f = hh*(b � 2)/3/b*(1 - f), correction relevant above 300m:
-    hf = mult_scale16(hh, 13533);
-    f = hf - mult_scale15(hf, f);
-    // f = hh*(b � 1)/2/b*(1 - f), correction relevant above 30m:
-    hf = mult_scale16(hh, 26533);
-    f = hf - mult_scale15(hf, f);
-    // f = hh*(1 - f), the linear part:
-    f = hh - mult_scale15(hh, f);
-    return f;
-}
-
-#endif // CONFIG_FIXEDPOINT_MATH
-
 
 // *************************************************************************************************
 // @fn          update_pressure_table
@@ -527,7 +469,6 @@ int16_t conv_altitude_to_fraction(int16_t hh)
 // *************************************************************************************************
 void update_pressure_table(int16_t href, uint32_t p_meas, uint16_t t_meas)
 {
-#ifndef CONFIG_FIXEDPOINT_MATH
     const float Invt00 = 0.003470415;
     const float coefp  = 0.00006;
     volatile float p_fact;
@@ -552,7 +493,11 @@ void update_pressure_table(int16_t href, uint32_t p_meas, uint16_t t_meas)
         h_low = h0[i];
     }
 
-    p_noll = (float)(hnoll - h_low) * (1 - (hnoll - (float)h0[i]) * coefp) * ((float)p0[i] - (float)p0[i - 1]) / ((float)h0[i] - h_low) + (float)p0[i - 1];
+    p_noll = (float)(hnoll - h_low) *
+		(1 - (hnoll - (float)h0[i]) * coefp) *
+		((float)p0[i] - (float)p0[i - 1]) /
+		((float)h0[i] - h_low) +
+		(float)p0[i - 1];
 
     // Calculate multiplicator
     p_fact = fl_p_meas / p_noll;
@@ -561,32 +506,8 @@ void update_pressure_table(int16_t href, uint32_t p_meas, uint16_t t_meas)
     for (i = 0; i <= 16; i++) {
         p[i] = p0[i] * p_fact;
     }
-
-#else
-    // Note: a user-provided sea-level reference pressure in mbar as used by pilots
-    // would be straightforward: href = 0; p_meas = (int32_t)mbar*100;
-    // The altitude reading will be iteratively updated.
-
-    // Convert to 4Pa units:
-    pLast = (int16_t)((p_meas + 2) >> 2);
-
-    // Convert reference altitude to normalized units:
-    /*if (sys.flag.use_metric_units) { // user_altitude in m
-        hLast = 4 * href - mult_scale16(href, 7536);
-    } else { // user_altitude in ft
-        hLast = href + mult_scale16(href, 12068);
-    }*/
-
-    int32_t f = (int32_t)0x8000 - conv_altitude_to_fraction(hLast);
-    // pRef = p_meas*2^15/f:
-    pRef = ((((int32_t)pLast << 16) + f) >> 1) / f;
-    // The long division is acceptable because it happens rarely.
-    // The term + f) is for proper rounding.
-    // The <<16 and >>1 operations correct for the 15bit scale of f.
-#endif
 }
 
-#ifndef CONFIG_FIXEDPOINT_MATH
 // *************************************************************************************************
 // @fn          conv_pa_to_meter
 // @brief       Convert pressure (Pa) to altitude (m) using a conversion table
@@ -617,13 +538,25 @@ int16_t conv_pa_to_meter(uint32_t p_meas, uint16_t t_meas)
     }
 
     if (i == 0) {
-        hnoll = (float)(fl_p_meas - p[0]) / (p[1] - p[0]) * ((float)(h0[1] - h0[0]));
+        hnoll = (float)(fl_p_meas - p[0]) /
+			(p[1] - p[0]) *
+			((float)(h0[1] - h0[0]));
     } else if (i < 15) {
-        hnoll = (float)(fl_p_meas - p_low) * (1 - (fl_p_meas - p[i]) * coef2) / (p[i] - p_low) * ((float)(h0[i] - h0[i - 1])) + h0[i - 1];
+        hnoll = (float)(fl_p_meas - p_low) *
+			(1 - (fl_p_meas - p[i]) * coef2) /
+			(p[i] - p_low) *
+			((float)(h0[i] - h0[i - 1])) +
+			h0[i - 1];
     } else if (i == 15) {
-        hnoll = (float)(fl_p_meas - p_low) / (p[i] - p_low) * ((float)(h0[i] - h0[i - 1])) + h0[i - 1];
+        hnoll = (float)(fl_p_meas - p_low) /
+			(p[i] - p_low) *
+			((float)(h0[i] - h0[i - 1])) +
+			h0[i - 1];
     } else { // i==16
-        hnoll = (float)(fl_p_meas - p[16]) / (p[16] - p[15]) * ((float)(h0[16] - h0[15])) + h0[16];
+        hnoll = (float)(fl_p_meas - p[16]) /
+			(p[16] - p[15]) *
+			((float)(h0[16] - h0[15])) +
+			h0[16];
     }
 
     // Compensate temperature error
@@ -633,89 +566,3 @@ int16_t conv_pa_to_meter(uint32_t p_meas, uint16_t t_meas)
 
     return (h);
 }
-#else
-// *************************************************************************************************
-// @fn          conv_pressure_to_altitude
-// @brief       Calculates altitude from current pressure, and
-//              stored reference pressure at sea level and previous altitude estimate.
-//              Temperature info is ignored.
-// @param       uint32_t        p_meas  Pressure (Pa)
-// @param       uint16_t        t_meas  Temperature (10*�K) Ignored !!!
-// @return      Estimated altitude in user-selected unit (m or ft)
-//              (internally filtered, slightly sluggish).
-// *************************************************************************************************
-int16_t conv_pa_to_altitude(uint32_t p_meas, uint16_t t_meas)
-{
-    /*
-    Assumption: fixed, linear T(h)
-    T = T0 � dTdh*h
-    with
-    T0 = 288.15K (15C)
-    dTdh = 6.5mK/m
-
-    Basic differential equation:
-        dh = -(R/G)*T(H)*dp/p
-    Solution:
-        H = H0*(1 � (p/pRef)^a)
-    with
-        H0 = T0/dTdh = 44330.77m
-        pRef = adjustable reference pressure at sea level (h=0).
-        a = dTdH*R/G = 0.190263
-        R = 287.052m^2/s^2/K
-        G = 9.80665 (at medium latitude)
-
-    We assume T0 and the temperature profile to be fixed; the temperature reading
-    of the watch is not very useful since it is strongly influenced by body heat,
-    clothing, shelter, etc.
-
-    Straight evaluation of h(p) requires an unattractive long division p/pRef
-    with pRef the adjustable reference pressure, and the Taylor expansion does
-    not converge very quickly.
-
-    Evaluation of p(h) requires a more attractive multiplication by the
-    user-adjustable reference pressure pRef:
-        f =(1 � h/H0)^b
-        p = pRef*f
-    with
-        b = 1/a = G/(dTdH*R) = 5.255896
-    In a very crude linear iteration the h value can be updated by
-        delta_h = �delta_p / dpdh
-    The slope dpdh varies by about a factor two over the range of interest,
-    but we can pick a fixed value on the safe side and accept that the updates
-    are a bit more damped at higher altitudes.
-
-    The sensor provides 19bit absolute pressure in units of 0.25Pa, but that is more
-    resolution than we can easily handle in the multiplications. We store measured
-    pressure p, reference pressure pRef and calculated pressure as uint16_t in units of 4Pa.
-
-    In the units chosen for p (4Pa) and for hLast (see function conv_altitude_to_fraction),
-    the slope dpdh is about -0.75 at sea level down to -0.375 at high altitudes. To avoid
-    overshoot and instabilities we assume a bigger value and accept a minor amount of
-    extra filtering delay at higher altitudes. The factor 1/0.75 is approximated by 1.
-    */
-    // Scale to 4Pa units:
-    int16_t p = (int16_t)((p_meas + 2) >> 2);
-    // Predictor to speed up response to pressure changes:
-//  hLast -= p - pLast; // Factor of about 1/0.75 would be better.
-    // Store current pressure for next predictor:
-    pLast = p;
-    // Calculate pressure ratio based on guessed altitude (serious DSP work):
-    int16_t f = conv_altitude_to_fraction(hLast);
-    // Calculate pressure expected for guessed height
-    uint16_t pCalculated = pRef - mult_scale15(pRef, f);
-    // This calculation is correct within about 7Pa.
-    // We still have to reverse the solution with a linearly improved guess:
-    hLast -= p - pCalculated;
-    // Iteration gain factor of about 1/0.75 would result in faster convergence,
-    // but even the big initial jump when the altimeter is switched on converges
-    // in some 5 or 6 steps to about 1m accuracy.
-
-    /*if (sys.flag.use_metric_units) {*/
-        // Altitude in meters (correct within about 0.7m):
-        return mult_scale16(hLast, 16869);
-/*  } else {
-        // Altitude in feet (correct within 1.5ft):
-        return mult_scale15(hLast, 27672);
-    }*/
-}
-#endif // CONFIG_FIXEDPOINT_MATH

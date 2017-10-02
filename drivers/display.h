@@ -341,7 +341,7 @@ void display_symbol(
 
 char *_sprintf(
     const char *fmt, /*!< the format specifier */
-    int16_t n        /*!< the number to be used in the format specifier */
+    int32_t n        /*!< the number to be used in the format specifier */
 );
 
 /*!
