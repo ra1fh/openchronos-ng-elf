@@ -125,8 +125,15 @@ void ps_init(void)
 // *************************************************************************************************
 void ps_start(void)
 {
+	// Enable DRDY IRQ on rising edge
+	PS_INT_IFG &= ~PS_INT_PIN;
+	PS_INT_IE |= PS_INT_PIN;
+
     // Start sampling data in ultra low power mode
     ps_write_register(0x03, 0x0B);
+
+	// 200ms needed to have a working interrupt
+	timer0_delay(200, LPM3_bits);
 }
 
 
@@ -139,8 +146,15 @@ void ps_start(void)
 // *************************************************************************************************
 void ps_stop(void)
 {
-    // Put sensor to standby
+ 	// Disable DRDY IRQ
+	PS_INT_IE  &= ~PS_INT_PIN;
+	PS_INT_IFG &= ~PS_INT_PIN;
+	
+	// Put sensor to standby
     ps_write_register(0x03, 0x00);
+
+	// 200ms needed ? FIXME
+	timer0_delay(200, LPM3_bits);
 }
 
 
@@ -379,7 +393,7 @@ uint16_t ps_read_register(uint8_t address, uint8_t mode)
 // *************************************************************************************************
 uint32_t ps_get_pa(void)
 {
-    volatile uint32_t data = 0;
+    uint32_t data = 0;
 
     // Get 3 MSB from DATARD8 register
     data = ps_read_register(0x7F, PS_TWI_8BIT_ACCESS);
