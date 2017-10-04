@@ -30,12 +30,29 @@
 #include "drivers/vti_ps.h"
 
 extern uint8_t ps_ok;
+static uint8_t altitude_dots;
 
 static void altitude_event(enum sys_message msg)
 {
-    if (msg & SYS_MSG_RTC_SECOND) {
-        display_symbol(0, LCD_SEG_L1_COL, ((rtca_time.sec & 0x01) ? SEG_ON : SEG_OFF));
-    }
+	uint32_t pressure;
+	uint8_t digits[10] = { 0 };
+	int i;
+
+	altitude_dots = !altitude_dots;
+	display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(0, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+	display_symbol(0, LCD_SEG_L2_DP, SEG_ON);
+
+	pressure = ps_get_pa();
+	for (i = 0; i < sizeof(digits); ++i) {
+		digits[i] = pressure % 10;
+		pressure  = pressure / 10;
+	}
+
+	i = 0;
+	_printf(0, LCD_SEG_L2_1_0, "%02u", digits[1 + i] * 10 + digits[0 + i]);
+	_printf(0, LCD_SEG_L2_3_2, "%02u", digits[3 + i] * 10 + digits[2 + i]);
+	_printf(0, LCD_SEG_L2_5_4, "%02u", digits[5 + i] * 10 + digits[4 + i]);
 }
 
 /* update screens with fake event */
@@ -47,15 +64,12 @@ static inline void update_screen()
 /************************ menu callbacks **********************************/
 static void altitude_activated()
 {
-    sys_messagebus_register(&altitude_event, SYS_MSG_RTC_SECOND);
-
     /* create one screens */
     lcd_screens_create(1); // 0: log, 1: show, 2: diff
 
 	display_chars(0,  LCD_SEG_L1_3_0, "ALTI", SEG_SET);
 
-	/* enable ps */
-	ps_start();
+    sys_messagebus_register(&altitude_event, SYS_MSG_PS_INT);
 
 	if (ps_ok) {
 		display_chars(0,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
@@ -63,50 +77,27 @@ static void altitude_activated()
 		display_chars(0,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
 	}
 
-    /* update screens with fake event */
-    update_screen();
+	/* enable ps */
+	ps_start();
 }
 
 static void altitude_deactivated()
 {
     sys_messagebus_unregister_all(&altitude_event);
 
+	/* disable ps */
+	ps_stop();
+
     /* destroy virtual screens */
     lcd_screens_destroy();
 
     /* clean up screen */
-    display_symbol(0, LCD_SEG_L1_COL, SEG_OFF);
-    display_symbol(0, LCD_SYMB_PM, SEG_OFF);
-	display_symbol(0, LCD_SYMB_ARROW_UP, SEG_OFF);
-	display_symbol(0, LCD_SYMB_ARROW_DOWN, SEG_OFF);
-	display_symbol(0, LCD_SYMB_MAX, SEG_OFF);
-
     display_clear(0, 1);
     display_clear(0, 2);
-
-	/* disable ps */
-	ps_stop();
 }
 
-/* Num button press callback */
 static void num_pressed()
 {
-	uint32_t altitude;
-
-	/* read altitude */
-	if (ps_ok) {
-		PS_INT_IFG &= ~PS_INT_PIN;
-		PS_INT_IE |= PS_INT_PIN;
-
-		while ((PS_INT_IN & PS_INT_PIN) == 0) ;
-
-		altitude = ps_get_pa();
-
-		_printf(0, LCD_SEG_L2_4_0, "%5u", altitude / 10);
-
-	} else {
-		display_chars(0,  LCD_SEG_L2_4_0, "ERR 1", SEG_SET);
-	}
 }
 
 static void num_long_pressed()
@@ -115,12 +106,10 @@ static void num_long_pressed()
 
 static void up_pressed()
 {
-    update_screen();
 }
 
 static void down_pressed()
 {
-    update_screen();
 }
 
 void mod_altitude_init()
