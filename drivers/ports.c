@@ -34,9 +34,7 @@
 #include "vti_as.h"
 #endif
 
-#ifdef CONFIG_MOD_ALTITUDE
 #include "vti_ps.h"
-#endif
 
 #define ALL_BUTTONS 0x1F
 
