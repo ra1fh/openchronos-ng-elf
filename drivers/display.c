@@ -497,7 +497,7 @@ void display_clear(uint8_t scr_nr, uint8_t line)
     }
 }
 
-char *_sprintf(const char *fmt, int16_t n) {
+char *_sprintf(const char *fmt, int32_t n) {
     int8_t i = 0;
     int8_t j = 0;
 
