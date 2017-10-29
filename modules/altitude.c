@@ -37,38 +37,11 @@ static uint8_t altitude_screen = 0;
 static uint32_t altitude_qnh_cur = 1013;
 static uint32_t altitude_qnh_tmp = 1013;
 
-static void altitude_print_line2(int display, uint32_t val, uint32_t scale)
-{
-	uint32_t digits[10] = { 0 };
-	uint32_t v = val;
-	const char *fmt = "%2u";
-	int i;
-	
-	for (i = 0; i < (sizeof(digits) / sizeof(digits[0])); ++i) {
-		digits[i] = v % 10;
-		v  = v / 10;
-	}
-
-	if (val >= 10000) {
-		_printf(display, LCD_SEG_L2_5_4, fmt, digits[5 + scale] * 10 + digits[4 + scale]);
-		fmt = "%02u";
-	} else {
-		display_chars(display, LCD_SEG_L2_5_4, "  ", SEG_SET);
-	}
-	if (val >= 100) {
-		_printf(display, LCD_SEG_L2_3_2, fmt, digits[3 + scale] * 10 + digits[2 + scale]);
-		fmt = "%02u";
-	} else {
-		display_chars(display, LCD_SEG_L2_3_2, "  ", SEG_SET);
-	}
-	_printf(display, LCD_SEG_L2_1_0, fmt, digits[1 + scale] * 10 + digits[0 + scale]);
-}
-
 static void altitude_event(enum sys_message msg)
 {
 	uint32_t p_meas;
 	uint32_t p_disp;
-	uint32_t alt;
+	int32_t alt;
 	double qnh = altitude_qnh_cur;
 
 	altitude_dots = !altitude_dots;
@@ -80,14 +53,13 @@ static void altitude_event(enum sys_message msg)
 	display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
 	p_meas = p_disp = ps_get_pa();
-
 	alt = 145442.2 * (1.0 - pow(((double)p_meas) / qnh / 100.0, 0.19));
-	altitude_print_line2(0, alt, 0);
+	_printf(0, LCD_SEG_L2_5_0, "%6u", alt);
 
 	alt = 44330.8 * (1.0 - pow(((double)p_meas) / qnh / 100.0, 0.19));
-	altitude_print_line2(1, alt, 0);
-
-	altitude_print_line2(2, p_meas, 0);
+	_printf(1, LCD_SEG_L2_5_0, "%6u", alt);
+	
+	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
 
 /************************ menu callbacks **********************************/
