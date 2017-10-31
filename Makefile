@@ -47,14 +47,6 @@ CFLAGS	+= $(CFLAGS_DBG)
 LDFLAGS	+= $(LDFLAGS_DBG)
 endif
 
-# Need libm for altimeter module
-ALTI := $(shell grep "^\#define CONFIG_MOD_ALTITUDE" config.h)
-ifeq ($(ALTI),)
-LDLIBS =
-else
-LDLIBS = -lm
-endif
-
 # rebuild if CFLAGS changed, as suggested in:
 # http://stackoverflow.com/questions/3236145/force-gnu-make-to-rebuild-objects-affected-by-compiler-definition/3237349#3237349
 openchronos.cflags: force

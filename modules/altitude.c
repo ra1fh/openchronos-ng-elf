@@ -21,10 +21,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-#include <math.h>
-
 #include "messagebus.h"
 #include "menu.h"
+#include "mathutils.h"
 
 /* drivers */
 #include "drivers/rtca.h"
@@ -34,15 +33,15 @@
 extern uint8_t ps_ok;
 static uint8_t altitude_dots = 0;
 static uint8_t altitude_screen = 0;
-static uint32_t altitude_qnh_cur = 1013;
-static uint32_t altitude_qnh_tmp = 1013;
+static uint16_t altitude_qnh_cur = 1013;
+static uint16_t altitude_qnh_tmp = 1013;
 
 static void altitude_event(enum sys_message msg)
 {
 	uint32_t p_meas;
 	uint32_t p_disp;
 	int32_t alt;
-	double qnh = altitude_qnh_cur;
+	float qnh = altitude_qnh_cur;
 
 	altitude_dots = !altitude_dots;
 	display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
@@ -53,11 +52,18 @@ static void altitude_event(enum sys_message msg)
 	display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
 	p_meas = p_disp = ps_get_pa();
-	alt = 145442.2 * (1.0 - pow(((double)p_meas) / qnh / 100.0, 0.19));
-	_printf(0, LCD_SEG_L2_5_0, "%6u", alt);
 
-	alt = 44330.8 * (1.0 - pow(((double)p_meas) / qnh / 100.0, 0.19));
-	_printf(1, LCD_SEG_L2_5_0, "%6u", alt);
+	alt = 145442.2 * (1.0 - ex(0.19 * ln(((float)p_meas) / qnh / 100.0)));
+	if (alt > 0)
+		_printf(0, LCD_SEG_L2_5_0, "%6u", alt);
+	else
+		display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+
+	alt = 44330.8 * (1.0 - ex(0.19 * ln(((float)p_meas) / qnh / 100.0)));
+	if (alt > 0)
+		_printf(1, LCD_SEG_L2_5_0, "%6u", alt);
+	else
+		display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
 	
 	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
@@ -88,12 +94,8 @@ static void altitude_activated()
 
 	if (ps_ok) {
 		display_chars(0,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
-		display_chars(1,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
-		display_chars(2,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
 	} else {
 		display_chars(0,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
-		display_chars(1,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
-		display_chars(2,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
 	}
 
 	/* enable ps */
@@ -123,18 +125,6 @@ static void num_pressed()
 	if (altitude_screen > 2)
 		altitude_screen = 0;
 	lcd_screen_activate(altitude_screen);
-}
-
-static void num_long_pressed()
-{
-}
-
-static void up_pressed()
-{
-}
-
-static void down_pressed()
-{
 }
 
 /************************ edit mode **********************************/
@@ -187,11 +177,11 @@ static void star_long_pressed()
 void mod_altitude_init()
 {
     menu_add_entry("ALTI",
-					&up_pressed,           	 /* up         */
-					&down_pressed,         	 /* down       */
+					NULL,           		 /* up         */
+					NULL,         			 /* down       */
 					&num_pressed,          	 /* num        */
 					&star_long_pressed,		 /* star long  */
-					&num_long_pressed,     	 /* num long   */
+					NULL,     				 /* num long   */
 					NULL,                  	 /* up + down  */
 					&altitude_activated,     /* activate   */
 					&altitude_deactivated);  /* deactivate */
