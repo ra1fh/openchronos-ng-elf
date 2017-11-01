@@ -23,7 +23,6 @@
 
 #include "messagebus.h"
 #include "menu.h"
-#include "mathutils.h"
 
 /* drivers */
 #include "drivers/rtca.h"
@@ -36,12 +35,97 @@ static uint8_t altitude_screen = 0;
 static uint16_t altitude_qnh_cur = 1013;
 static uint16_t altitude_qnh_tmp = 1013;
 
+/**********************************************************************
+ Altitude Calculation
+ 
+ ISA standard atmosphere:
+
+        altitude = (T0 / -a) * (1 - (p/p0)^(-a * R / g)
+ With:
+        T0 = 288.15 K
+         a = -0.065 K/m
+        p0 = 101325 Pa
+         R =    287 J/kgK
+         g =   9.82 m/s^2
+        p0 = QNH
+ 
+ Computing the constants results in:
+
+        altitude = 44330m * (1 - (p/p0)^0.19)
+
+ To calculate x^0.19 using libm's pow() adds 16K code to the firmware.
+ To avoid libm, one option is to change x^y to e^(y * ln(x)):
+
+        altitude = 44330m * (1 - e^(0.19 * ln(p/p0)))
+
+ See mathutils.c for e^x and ln functions that doesn't require libm
+ and significantly reduce code size.
+
+ Another option (the one implemented below which resulted in smallest
+ code size) is to develop x^0.19 into a binomial series:
+
+        (1+x)^a = Sum(k=0, inf)(a over k) * (x)^k
+
+     => x^a     = Sum(k=0, inf)(a over k) * (x-1)^k
+
+     => x^0.19  = Sum(k=0, inf)(0.19 over k) * (x-1)^k
+
+     => x^0.19  = (0.19 over 0) * (x-1)^0
+                + (0.19 over 1) * (x-1)^1
+                + (0.19 over 2) * (x-1)^2 ...
+
+     => x^0.19  = 1.00000
+                + 0.19000 * (x-1)
+                - 0.07695 * (x-1)^2 ...
+
+ The coefficients (0.19 over k) can be precomputed:
+ */
+
+static const float coefficients[] = {
+	 1.000000,
+	 0.190000,
+	-0.076950,
+	 0.046427,
+	-0.032615,
+	 0.024852,
+	-0.019923,
+	 0.016536,
+	-0.014077,
+	 0.012215,
+};
+
+/*
+ The series converges quickly for low altitudes (p ~ QNH, x ~ 1) with
+ only 2 iteration steps needed. At x = 0.5 (~18500ft) 9 iterations are
+ needed and the error is approx. 3ft. Beyond that altitude the error
+ gets larger.
+*/
+
+static float altitude_calc(float p_meas, float qnh) {
+	const float term = 0.00005;
+	const float u = (p_meas / qnh) - 1;
+	float sum = 0;
+	float prev = 0;
+	float prod = 1;
+	int i;
+
+	for (i = 0; i < sizeof(coefficients) / sizeof(coefficients[0]); i++) {
+		prev = sum;
+		sum += coefficients[i] * prod;
+		prod *= u;
+		if (sum - prev < term && sum - prev > -term)
+			break;
+	}
+	return (1.0 - sum);
+}
+
+/**********************************************************************/
+
 static void altitude_event(enum sys_message msg)
 {
 	uint32_t p_meas;
-	uint32_t p_disp;
 	int32_t alt;
-	float qnh = altitude_qnh_cur;
+	float altf;
 
 	altitude_dots = !altitude_dots;
 	display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
@@ -51,19 +135,18 @@ static void altitude_event(enum sys_message msg)
 	display_symbol(2, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
 	display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
-	p_meas = p_disp = ps_get_pa();
+	p_meas = ps_get_pa();
 
-	alt = 145442.2 * (1.0 - ex(0.19 * ln(((float)p_meas) / qnh / 100.0)));
-	if (alt > 0)
+	altf = altitude_calc(p_meas * 1.0, altitude_qnh_cur * 100.0);
+	if (altf > 0) {
+		alt = 145442.2 * altf;
 		_printf(0, LCD_SEG_L2_5_0, "%6u", alt);
-	else
-		display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
-
-	alt = 44330.8 * (1.0 - ex(0.19 * ln(((float)p_meas) / qnh / 100.0)));
-	if (alt > 0)
+		alt = 44330.8 * altf;
 		_printf(1, LCD_SEG_L2_5_0, "%6u", alt);
-	else
+	} else {
+		display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
 		display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+	}
 	
 	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
