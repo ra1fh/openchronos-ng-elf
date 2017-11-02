@@ -53,16 +53,7 @@ static uint16_t altitude_qnh_tmp = 1013;
 
         altitude = 44330m * (1 - (p/p0)^0.19)
 
- To calculate x^0.19 using libm's pow() adds 16K code to the firmware.
- To avoid libm, one option is to change x^y to e^(y * ln(x)):
-
-        altitude = 44330m * (1 - e^(0.19 * ln(p/p0)))
-
- See mathutils.c for e^x and ln functions that doesn't require libm
- and significantly reduce code size.
-
- Another option (the one implemented below which resulted in smallest
- code size) is to develop x^0.19 into a binomial series:
+ To calculate x^0.19, we use a binomial series:
 
         (1+x)^a = Sum(k=0, inf)(a over k) * (x)^k
 
@@ -97,8 +88,8 @@ static const float coefficients[] = {
 /*
  The series converges quickly for low altitudes (p ~ QNH, x ~ 1) with
  only 2 iteration steps needed. At x = 0.5 (~18500ft) 9 iterations are
- needed and the error is approx. 3ft. Beyond that altitude the error
- gets larger.
+ needed and the error is approx. 3ft. Beyond that, the error gets
+ larger.
 */
 
 static float altitude_calc(float p_meas, float qnh) {
