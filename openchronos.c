@@ -72,7 +72,7 @@
 /* Driver */
 #include "drivers/display.h"
 #include "drivers/vti_as.h"
-#include "drivers/vti_ps.h"
+#include "drivers/ps.h"
 #include "drivers/radio.h"
 #include "drivers/buzzer.h"
 #include "drivers/ports.h"

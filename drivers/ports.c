@@ -34,7 +34,9 @@
 #include "vti_as.h"
 #endif
 
-#include "vti_ps.h"
+#ifdef CONFIG_MOD_ALTITUDE
+#include "ps.h"
+#endif
 
 #define ALL_BUTTONS 0x1F
 
@@ -189,6 +191,3 @@ void PORT2_ISR(void)
      latest interrupt */
     P2IV = 0x00;
 }
-
-
-

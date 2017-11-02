@@ -27,7 +27,7 @@
 /* drivers */
 #include "drivers/rtca.h"
 #include "drivers/display.h"
-#include "drivers/vti_ps.h"
+#include "drivers/ps.h"
 
 extern uint8_t ps_ok;
 static uint8_t altitude_dots = 0;
@@ -254,6 +254,7 @@ static void star_long_pressed()
 /************************ init **********************************/
 void mod_altitude_init()
 {
+#if defined CONFIG_PRESSURE_BUILD_BOSCH_PS || defined CONFIG_PRESSURE_BUILD_VTI_PS
     menu_add_entry("ALTI",
 					NULL,           		 /* up         */
 					NULL,         			 /* down       */
@@ -263,4 +264,5 @@ void mod_altitude_init()
 					NULL,                  	 /* up + down  */
 					&altitude_activated,     /* activate   */
 					&altitude_deactivated);  /* deactivate */
+#endif
 }
