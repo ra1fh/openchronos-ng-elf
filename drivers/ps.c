@@ -89,7 +89,7 @@ void ps_init(void)
 
     if (ps_ok) {
         bmp_used = 1;
-		return
+		return;
 	}
 #endif
 #ifdef CONFIG_PRESSURE_BUILD_VTI_PS
