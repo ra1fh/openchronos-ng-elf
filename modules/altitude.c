@@ -177,8 +177,12 @@ static void altitude_activated()
 
 	if (ps_ok) {
 		display_chars(0,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
+		display_chars(1,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
+		display_chars(2,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
 	} else {
 		display_chars(0,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
+		display_chars(1,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
+		display_chars(2,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
 	}
 
 	/* enable ps */
