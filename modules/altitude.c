@@ -182,7 +182,7 @@ static void altitude_event(enum sys_message msg)
 	display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
 	p_meas = ps_get_pa();
-	alt = altitude_calc(p_meas / 100, altitude_qnh_cur);
+	alt = altitude_calc(p_meas / 10, altitude_qnh_cur);
 	if (alt > 0) {
 		_printf(0, LCD_SEG_L2_5_0, "%6u", alt / alt_scale);
 		_printf(1, LCD_SEG_L2_5_0, "%6u", alt / alt_scale_meter);

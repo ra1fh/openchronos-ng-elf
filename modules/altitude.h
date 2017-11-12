@@ -1,7 +1,7 @@
 
-static const int16_t p_low = 500;
-static const int16_t p_high = 1100;
-static const int16_t p_step = 10;
+static const int16_t p_low = 5000;
+static const int16_t p_high = 11000;
+static const int16_t p_step = 100;
 static const int16_t qnh_low = 900;
 static const int16_t qnh_high = 1100;
 static const int16_t qnh_step = 20;
