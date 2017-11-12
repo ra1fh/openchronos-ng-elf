@@ -29,6 +29,8 @@
 #include "drivers/display.h"
 #include "drivers/ps.h"
 
+#define USE_BINOMIAL_SERIES 0
+
 extern uint8_t ps_ok;
 static uint8_t altitude_dots = 0;
 static uint8_t altitude_screen = 0;
@@ -40,7 +42,7 @@ static uint16_t altitude_qnh_tmp = 1013;
  
  ISA standard atmosphere:
 
-        altitude = (T0 / -a) * (1 - (p/p0)^(-a * R / g)
+        altitude = (T0 / -a) * (1 - (p/p0)^(-a * R / g))
  With:
         T0 = 288.15 K
          a = -0.065 K/m
@@ -72,6 +74,7 @@ static uint16_t altitude_qnh_tmp = 1013;
  The coefficients (0.19 over k) can be precomputed:
  */
 
+#if USE_BINOMIAL_SERIES
 static const float coefficients[] = {
 	 1.000000,
 	 0.190000,
@@ -141,6 +144,60 @@ static void altitude_event(enum sys_message msg)
 	
 	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
+
+#else
+
+#include "altitude.h"
+
+static const int32_t alt_scale = 10000;
+static const int32_t alt_scale_meter = 32808;
+
+static int32_t altitude_calc(int16_t p, int16_t qnh) {
+	int16_t pindex = (p - p_low) / p_step;
+	int16_t qindex = (qnh - qnh_low) / qnh_step;
+	int16_t pbase = p_low + pindex * p_step;
+	int16_t qbase = qnh_low + qindex * qnh_step;
+	int32_t abase = alt_scale * altitude[qindex][pindex];
+	int32_t atopp = alt_scale * altitude[qindex][pindex+1];
+	int32_t atopq = alt_scale * altitude[qindex+1][pindex];
+	int32_t pgrad = (atopp - abase) / p_step;
+	int32_t qgrad = (atopq - abase) / qnh_step;
+	int32_t alt;
+
+	alt = abase + (p - pbase) * pgrad + (qnh - qbase) * qgrad;
+	return alt;
+}
+
+static void altitude_event(enum sys_message msg)
+{
+	uint32_t p_meas;
+	int32_t alt;
+
+	altitude_dots = !altitude_dots;
+	display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(0, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+	display_symbol(1, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(1, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+	display_symbol(2, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+
+	p_meas = ps_get_pa();
+	alt = altitude_calc(p_meas / 100, altitude_qnh_cur);
+	if (alt > 0) {
+		_printf(0, LCD_SEG_L2_5_0, "%6u", alt / alt_scale);
+		_printf(1, LCD_SEG_L2_5_0, "%6u", alt / alt_scale_meter);
+	} else {
+		display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+		display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+	}
+
+	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
+}
+
+#endif
+
+
+
 
 /************************ menu callbacks **********************************/
 static void altitude_activated()
