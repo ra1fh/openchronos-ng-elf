@@ -29,13 +29,17 @@
 #include "drivers/display.h"
 #include "drivers/ps.h"
 
-#define USE_BINOMIAL_SERIES 0
+#define USE_SERIES 0
+#define USE_LIBM 0
+#define USE_LUT 1
 
 extern uint8_t ps_ok;
 static uint8_t altitude_dots = 0;
 static uint8_t altitude_screen = 0;
 static uint16_t altitude_qnh_cur = 1013;
 static uint16_t altitude_qnh_tmp = 1013;
+
+#if USE_SERIES
 
 /**********************************************************************
  Altitude Calculation
@@ -74,7 +78,6 @@ static uint16_t altitude_qnh_tmp = 1013;
  The coefficients (0.19 over k) can be precomputed:
  */
 
-#if USE_BINOMIAL_SERIES
 static const float coefficients[] = {
 	 1.000000,
 	 0.190000,
@@ -144,8 +147,9 @@ static void altitude_event(enum sys_message msg)
 	
 	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
+#endif
 
-#else
+#if USE_LUT
 
 #include "altitude.h"
 
@@ -186,6 +190,46 @@ static void altitude_event(enum sys_message msg)
 	if (alt > 0) {
 		_printf(0, LCD_SEG_L2_5_0, "%6u", alt / alt_scale);
 		_printf(1, LCD_SEG_L2_5_0, "%6u", alt / alt_scale_meter);
+	} else {
+		display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+		display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+	}
+
+	_printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
+}
+
+#endif
+
+#if USE_LIBM
+
+#include <math.h>
+
+static float altitude_calc(float p, float qnh) {
+	return 44300.0 * (1.0 - powf((float) p / (float) qnh, 0.19));
+}
+
+static void altitude_event(enum sys_message msg)
+{
+	uint32_t p_meas;
+	uint32_t alti;
+	float altf;
+
+	altitude_dots = !altitude_dots;
+	display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(0, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+	display_symbol(1, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(1, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+	display_symbol(2, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+	display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+
+	p_meas = ps_get_pa();
+	altf = altitude_calc(p_meas * 1.0, altitude_qnh_cur * 100.0);
+	if (altf > 0) {
+		alti = altf;
+		_printf(1, LCD_SEG_L2_5_0, "%6u", alti);
+		altf = altf * 3.28084;
+		alti = altf;
+		_printf(0, LCD_SEG_L2_5_0, "%6u", alti);
 	} else {
 		display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
 		display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
