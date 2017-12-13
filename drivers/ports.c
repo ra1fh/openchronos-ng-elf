@@ -183,9 +183,11 @@ void PORT2_ISR(void)
         as_last_interrupt = 1;
     #endif
 
+    #ifdef CONFIG_MOD_ALTITUDE
 	/* Check if pressure interrupt flag */
     if ((P2IFG & PS_INT_PIN) == PS_INT_PIN)
         ps_last_interrupt = 1;
+    #endif
 
     /* A write to the interrupt vector, automatically clears the
      latest interrupt */
