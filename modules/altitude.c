@@ -349,7 +349,7 @@ static void star_long_pressed()
     altitude_print_qnh();
 	lcd_screen_activate(3);
 	altitude_qnh_tmp = altitude_qnh_cur;
-    menu_editmode_start(&altitude_edit_save, altitude_edit_items);
+    menu_editmode_start(&altitude_edit_save, NULL, altitude_edit_items);
 }
 
 /************************ init **********************************/
