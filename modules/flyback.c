@@ -24,7 +24,7 @@
 /* flyback.c: flyback stopwatch with logging
  *
  * The flyback mode (menu text "FLYBK") is similar to a flyback
- * stopwatch with the additonal feature of storing timestamps and
+ * stopwatch with the additional feature of storing timestamps and
  * counting the number of events (up to 19 events/timestamps). In
  * contrast to a regular stopwatch, the timer will automatically
  * restart on button press.
@@ -49,18 +49,18 @@
  * (start, stop, ...).
  *
  * On the list screen, the up and down buttons will scroll through the
- * recorded timestamps. No new timestamp will be recorded when using
- * the up and down buttons on these screens.
+ * recorded timestamps or the list of time intervals between recorded
+ * timestamps. No new timestamp will be recorded when using the up and
+ * down buttons on these screens.
  *
  * The list of timestamps is kept in main memory and is persistent
- * accross mode switches. Also the stopwatch will continue to run when
- * using a different mode inbetween. But, timestamps will be lost
+ * across mode switches. Also the stopwatch will continue to run when
+ * using a different mode in between. But, timestamps will be lost
  * when removing the battery, reset or other power loss.
  *
  * The timestamps are stored by copying the current real time clock
- * (RTC) time into memory slots. The flyback stopwatch uses a
- * separate memory slot so that the stopwatch continues to work when
- * all memory slots are used.
+ * (RTC) time into memory slots. When all memory slots are in use, the
+ * last slot will be overwritten when recording a time stamp.
  *
  * When changing the time in the clock module, stored timestamps are
  * not adjusted. This means that the stopwatch view and interval times
@@ -79,8 +79,8 @@
  *
  * When 19 records have been recorded, this will be indicated by the
  * "MAX" symbol in the lower part of the screen. The flyback stopwatch
- * function is still available, but no further timestamps will be
- * recorded.
+ * function is still available, but the last timestamp will be
+ * overwritten with subsequent timestamp recordings.
  *
  * === 2. CHRONO SCREEN ===
  *
@@ -88,29 +88,47 @@
  * current time in the first line. There is no counter in the second
  * line. All the digits of the second line are used to display a
  * higher precision stopwatch. Up to 20 hours it will show
- * hours:minutes:seconds. After 20 hours upto 100 hours it will switch
+ * hours:minutes:seconds. After 20 hours up to 100 hours it will switch
  * to four digits showing hours:minutes. When exceeding 100 hours the
  * display will show '-----'.
  *
  * The up and down buttons will restart the stopwatch and record the
- * current time in a memory slot (unless memory is full, indicated by
- * the 'MAX' symbol)
+ * current time in a memory slot.
  *
  * === 3. LIST SCREEN ===
  *
- * The list screen shows the recorded timestamps. It starts with the
- * most recent timestamp. The first line shows hours and minutes, the
- * right to digits of the lower display line show the seconds. The
- * record number is shown in the left two digits of the second line.
+ * The list screen shows the total time from first to last timestamp,
+ * the recorded timestamps and intervals. It starts with the total
+ * time, indicated with the 'TOTAL' symbol. The first line shows hours
+ * and minutes, the right two digits of the lower display line show
+ * the seconds. The number of records is shown in the left two digits
+ * of the second line. In case there are less than 2 timestamps, the
+ * total display will show all zeros.
  *
  * The up and down buttons can be used to scroll through the list of
- * timestamps.
+ * timestamps and intervals.
+
+ * Starting with the total time, scrolling down will show interval
+ * time when there are 3 or more timestamps recorded. Otherwise the
+ * down button will not allow to scroll down.
  *
- * When no timestamp has been recorded yet, the screen will show all
- * zeros.
+ * Starting with the total time, scrolling up with show recorded time
+ * stamps in case there are one or more timestamps recorded. 
  *
  * In case the timestamp on display was recorded on a different day,
  * the record symbol will blink.
+ *
+ * To give a visual hint whether timestamps or intervals are shown,
+ * there are two parallel bars ('||') in the second line, either in
+ * down position (for intervals) or in the up position (for
+ * timestamps). When total time is shown, there are no bars.
+ * 
+ * The time delta view is limited to less than 100 hours. When
+ * exceeding 100 hours between two timestamps, the interval will be
+ * shown as '--:--'. The delta calculation is calendar correct across
+ * changes of month or year. E.g. you can record a timestamp on 28th
+ * of February in a leap year and the next one 1st of March, the time
+ * delta will be correct.
  *
  * === Caveats ===
  *
@@ -120,7 +138,7 @@
  *
  * - When adjusting the clock, the recorded timestamps are not being
  *   adjusted. So the time delta recorded after the clock change might
- *   in inaccurate, as well as the stopwatch time.
+ *   be inaccurate, as well as the stopwatch time.
  *
  * - If for some reason the time delta calculation returns an error,
  *   the counter screen and chrono screen might show '-E-' where the
@@ -160,6 +178,12 @@ enum {
 	FLYBACK_MARK_BOTH,
 };
 
+enum {
+	FLYBACK_LIST_TOTAL,
+	FLYBACK_LIST_INTERVAL,
+	FLYBACK_LIST_TIMESTAMP,
+};
+
 #define FLYBACK_MAX_TIMESTAMPS 19
 
 #define TENMINUTES   (10L * 60)
@@ -178,11 +202,14 @@ struct ts_s {
 };
 
 static struct flyback_state {
-	struct ts_s ts[FLYBACK_MAX_TIMESTAMPS];
-	struct ts_s chrono;   /* timstamp used for stopwatch start time       */
+	struct ts_s ts[FLYBACK_MAX_TIMESTAMPS + 1];
+	/* ts[0] used for current time, MAX + 1 for easier indexing           */
 	time_t seconds;       /* stopwatch time in seconds                    */
 	uint8_t count;        /* number of records in use                     */
+	                      /* 0..FLYBACK_MAX_TIMESTAMPS                    */
 	uint8_t display_count;/* displayed record on list and interval screen */
+	                      /* 0..FLYBACK_MAX_TIMESTAMPS                    */
+	uint8_t display_mode; /* display mode for list and interval screens   */
 	uint8_t mode;         /* active screen                                */
 } flyback_state;
 
@@ -202,8 +229,6 @@ static void flyback_copy_rtc(struct ts_s *ts, int mark);
 static int flyback_diff_ts(struct ts_s *ts1, struct ts_s *ts2, time_t *s);
 static int flyback_diff_entries(int res, int i1, int i2);
 static void flyback_state_record(int mark);
-static void flyback_state_up();
-static void flyback_state_down();
 static void flyback_num_pressed();
 static void flyback_update_mark(int display, int mark);
 
@@ -225,17 +250,15 @@ static void flyback_counter_init()
 static void flyback_counter_statechange()
 {
 	uint8_t mark;
-	if (flyback_state.count == FLYBACK_MAX_TIMESTAMPS) {
-		mark = FLYBACK_MARK_NONE;
-	} else if (flyback_state.count) {
-		mark = flyback_state.ts[flyback_state.count - 1].mark;
+	if (flyback_state.count) {
+		mark = flyback_state.ts[flyback_state.count].mark;
 	} else {
 		mark = FLYBACK_MARK_NONE;
 	}
 	flyback_update_mark(FLYBACK_COUNTER, mark);
 	_printf(FLYBACK_COUNTER, LCD_SEG_L2_5_4, "%02u", flyback_state.count);
 	display_symbol(FLYBACK_COUNTER, LCD_SYMB_MAX,
-				   flyback_state.count == FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
+				   flyback_state.count >= FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
 }
 
 static void flyback_counter_event(enum sys_message msg)
@@ -323,16 +346,14 @@ static void flyback_chrono_init()
 static void flyback_chrono_statechange()
 {
 	uint8_t mark;
-	if (flyback_state.count == FLYBACK_MAX_TIMESTAMPS) {
-		mark = FLYBACK_MARK_NONE;
-	} else if (flyback_state.count) {
-		mark = flyback_state.ts[flyback_state.count - 1].mark;
+	if (flyback_state.count) {
+		mark = flyback_state.ts[flyback_state.count].mark;
 	} else {
 		mark = FLYBACK_MARK_NONE;
 	}
 	flyback_update_mark(FLYBACK_CHRONO, mark);
 	display_symbol(FLYBACK_CHRONO, LCD_SYMB_MAX,
-				   flyback_state.count == FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
+				   flyback_state.count >= FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
 }
 
 static void flyback_chrono_event(enum sys_message msg)
@@ -407,46 +428,144 @@ static void flyback_list_init()
 
 static void flyback_list_enter()
 {
-	if (flyback_state.count > 0) {
-		flyback_state.display_count = flyback_state.count - 1;
-	} else {
-		flyback_state.display_count = 0;
-	} 
+	flyback_state.display_count = flyback_state.count;
+	flyback_state.display_mode = FLYBACK_LIST_TOTAL;
 }
 
 static void flyback_list_statechange()
 {
-	if (flyback_state.count == 0) {
-		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", 0);
-		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", 0);
-		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", 0);
-		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", 0);
-		flyback_update_mark(FLYBACK_LIST, FLYBACK_MARK_NONE);
-		display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_OFF);
-	} else {
-		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", flyback_state.ts[flyback_state.display_count].hour);
-		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", flyback_state.ts[flyback_state.display_count].min);
-		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", flyback_state.ts[flyback_state.display_count].sec);
-		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count + 1);
-		flyback_update_mark(FLYBACK_LIST, flyback_state.ts[flyback_state.display_count].mark);
-		if (flyback_state.ts[flyback_state.display_count].day != rtca_time.day ||
-			flyback_state.ts[flyback_state.display_count].mon != rtca_time.mon ||
-			flyback_state.ts[flyback_state.display_count].year != rtca_time.year) {
-			display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_ON);
-		} else {
-			display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_OFF);
-		}
-	}
+	uint8_t hour, min, sec, mark;
+	uint8_t blink;
+
+	_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count);
 	display_symbol(FLYBACK_LIST, LCD_SYMB_MAX,
-				   flyback_state.count == FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
+				   flyback_state.count >= FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
+
+	switch (flyback_state.display_mode) {
+	case FLYBACK_LIST_TOTAL:
+		display_chars(FLYBACK_LIST, LCD_SEG_L2_3_2, "  ", SEG_SET);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_OFF);
+		flyback_update_mark(FLYBACK_LIST, FLYBACK_MARK_BOTH);
+		if (! flyback_diff_entries(0, 1, flyback_state.display_count)) {
+			display_chars(FLYBACK_LIST, LCD_SEG_L1_3_0, "----", SEG_SET);
+			display_chars(FLYBACK_LIST, LCD_SEG_L2_1_0,   "--", SEG_SET);
+			return;
+		}
+		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", flyback_state.ts[0].hour);
+		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", flyback_state.ts[0].min);
+		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", flyback_state.ts[0].sec);
+		break;
+
+	case FLYBACK_LIST_INTERVAL:
+		display_bits(FLYBACK_LIST, LCD_SEG_L2_3, 0x40, SEG_SET);
+		display_bits(FLYBACK_LIST, LCD_SEG_L2_2, 0x04, SEG_SET);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_OFF);
+		if (! flyback_diff_entries(0, flyback_state.display_count - 1, flyback_state.display_count)) {
+			display_chars(FLYBACK_LIST, LCD_SEG_L1_3_0, "----", SEG_SET);
+			display_chars(FLYBACK_LIST, LCD_SEG_L2_1_0,   "--", SEG_SET);
+			flyback_update_mark(FLYBACK_LIST, FLYBACK_MARK_NONE);
+			return;
+		}
+		flyback_update_mark(FLYBACK_LIST, flyback_state.ts[0].mark);
+		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", flyback_state.ts[0].hour);
+		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", flyback_state.ts[0].min);
+		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", flyback_state.ts[0].sec);
+		break;
+
+	case FLYBACK_LIST_TIMESTAMP:
+		display_bits(FLYBACK_LIST, LCD_SEG_L2_3, 0x20, SEG_SET);
+		display_bits(FLYBACK_LIST, LCD_SEG_L2_2, 0x01, SEG_SET);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_OFF);
+		if (flyback_state.display_count == 0) {
+			hour = min = sec = 0;
+			mark = FLYBACK_MARK_NONE;
+			blink = BLINK_OFF;
+		} else {
+			hour = flyback_state.ts[flyback_state.display_count].hour;
+			min = flyback_state.ts[flyback_state.display_count].min;
+			sec = flyback_state.ts[flyback_state.display_count].sec;
+			mark = flyback_state.ts[flyback_state.display_count].mark;
+			if (flyback_state.ts[flyback_state.display_count].day != rtca_time.day ||
+				flyback_state.ts[flyback_state.display_count].mon != rtca_time.mon ||
+				flyback_state.ts[flyback_state.display_count].year != rtca_time.year) {
+				blink = BLINK_ON;
+			} else {
+				blink = BLINK_OFF;
+			}
+		}
+		flyback_update_mark(FLYBACK_LIST, mark);
+		display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | blink);
+		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", hour);
+		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", min);
+		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", sec);
+		break;
+
+	default:
+		(void) 0;
+		break;
+	}
 }
 
 static void flyback_list_updown(int mark)
 {
-	if (mark == FLYBACK_MARK_UP)
-		flyback_state_up();
-	else
-		flyback_state_down();
+	switch (flyback_state.display_mode) {
+	case FLYBACK_LIST_TOTAL:
+		if (mark == FLYBACK_MARK_UP && flyback_state.count > 0) {
+			flyback_state.display_count = 1;
+			flyback_state.display_mode = FLYBACK_LIST_TIMESTAMP;
+			flyback_statechange();
+		}
+		if (mark == FLYBACK_MARK_DOWN && flyback_state.count > 2) {
+			flyback_state.display_count = flyback_state.count;
+			flyback_state.display_mode = FLYBACK_LIST_INTERVAL;
+			flyback_statechange();
+		}
+		break;
+
+	case FLYBACK_LIST_INTERVAL:
+		if (mark == FLYBACK_MARK_UP) {
+			if (flyback_state.display_count < flyback_state.count && flyback_state.display_count < FLYBACK_MAX_TIMESTAMPS) {
+				flyback_state.display_count++;
+				flyback_statechange();
+			} else {
+				flyback_state.display_mode = FLYBACK_LIST_TOTAL;
+				flyback_state.display_count = flyback_state.count;
+				flyback_statechange();
+			}
+		} else {
+			if (flyback_state.display_count > 2) {
+				flyback_state.display_count--;
+				flyback_statechange();
+			}
+		}
+		break;
+
+	case FLYBACK_LIST_TIMESTAMP:
+		if (mark == FLYBACK_MARK_UP) {
+			if (flyback_state.display_count < flyback_state.count && flyback_state.display_count < FLYBACK_MAX_TIMESTAMPS) {
+				flyback_state.display_count++;
+				flyback_statechange();
+			}
+		} else {
+			if (flyback_state.display_count > 1) {
+				flyback_state.display_count--;
+				flyback_statechange();
+			} else {
+				flyback_state.display_mode = FLYBACK_LIST_TOTAL;
+				flyback_state.display_count = flyback_state.count;
+				flyback_statechange();
+			}
+		}
+		break;
+
+	default:
+		(void) 0;
+		/* should not happen */
+	}
 }
 
 static struct flyback_screen flyback_screens[] = {
@@ -581,26 +700,11 @@ static void flyback_update_mark(int display, int mark)
 
 static void flyback_state_record(int mark)
 {
-	flyback_copy_rtc(&flyback_state.chrono, FLYBACK_MARK_NONE);
 	if (flyback_state.count < FLYBACK_MAX_TIMESTAMPS) {
-		flyback_copy_rtc(&flyback_state.ts[flyback_state.count], mark);
 		flyback_state.count++;
 	}
+	flyback_copy_rtc(&flyback_state.ts[flyback_state.count], mark);
 	flyback_stopwatch();
-	flyback_statechange();
-}
-
-static void flyback_state_up()
-{
-	if (flyback_state.display_count + 1 < flyback_state.count)
-		flyback_state.display_count++;
-	flyback_statechange();
-}
-
-static void flyback_state_down()
-{
-	if (flyback_state.display_count > 0)
-		flyback_state.display_count--;
 	flyback_statechange();
 }
 
@@ -612,11 +716,10 @@ static void flyback_statechange()
 
 static void flyback_stopwatch()
 {
-	struct ts_s now;
 	int res = 0;
 	if (flyback_state.count > 0) {
-		flyback_copy_rtc(&now, 0);
-		res = flyback_diff_ts(&flyback_state.chrono, &now, &flyback_state.seconds);
+		flyback_copy_rtc(&flyback_state.ts[0], 0);
+		res = flyback_diff_ts(&flyback_state.ts[flyback_state.count], &flyback_state.ts[0], &flyback_state.seconds);
 		if (res < 0)
 			flyback_state.seconds = -1;
 	}
@@ -702,11 +805,6 @@ static void flyback_reset_one()
 
 	if (flyback_state.count > 0) {
 		flyback_state.count--;
-		if (flyback_state.count > 0) {
-			memcpy(&flyback_state.chrono,
-			       &flyback_state.ts[flyback_state.count -1],
-			       sizeof(flyback_state.chrono));
-		}
 		if (flyback_screens[flyback_state.mode].enter) {
 			flyback_screens[flyback_state.mode].enter();
 		}
