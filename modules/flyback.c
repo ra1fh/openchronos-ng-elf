@@ -39,10 +39,8 @@
  * - counter screen (heart symbol)
  * - chrono screen (stopwatch symbol)
  * - list screen (record symbol)
- * - interval screen (alarm symbol)
  * 
- * The counter screen and the interval screen can be switched off at
- * compile time.
+ * The counter screen can be switched off at compile time.
  *
  * On the counter and chrono screens, both the up and the down button
  * will record a new timestamp and restart the stopwatch from
@@ -50,10 +48,9 @@
  * with the timestamp. This can be used to differentiate events
  * (start, stop, ...).
  *
- * On the list screen and interval screen, the up and down buttons
- * will scroll through the recorded timestamps or the list of time
- * intervals between recorded timestamps. No new timestamp will be
- * recorded when using the up and down buttons on these screens.
+ * On the list screen, the up and down buttons will scroll through the
+ * recorded timestamps. No new timestamp will be recorded when using
+ * the up and down buttons on these screens.
  *
  * The list of timestamps is kept in main memory and is persistent
  * accross mode switches. Also the stopwatch will continue to run when
@@ -115,27 +112,6 @@
  * In case the timestamp on display was recorded on a different day,
  * the record symbol will blink.
  *
- * === 4. INTERVAL SCREEN ===
- *
- * The interval screen shows time deltas between recorded timestamps.
- * It starts with the most recent time delta. The first line shows
- * hours and minutes. The two rightmost digits of the second line show
- * the seconds.
- *
- * The up and down buttons can be used to scroll through the list of
- * time deltas.
- *
- * When no timestamps have been recorded yet, the screen shows all
- * zeros. When only one timestamp has been recorded, the count will
- * show '1' and the rest of the display shows all zeros.
- *
- * The time delta view is limited to less than 100 hours. When
- * exceeding 100 hours between two timestamps, the interval will be
- * shown as '--:--'. The delta calculation is calendar correct accross
- * changes of month or year. E.g. you can record a timestamp on 28th
- * of February in a leap year and the next one 1st of March, the time
- * delta will be correct.
- *
  * === Caveats ===
  *
  * - There is currently no way to display the day, month or year of a
@@ -172,9 +148,6 @@ enum {
 #endif
 	FLYBACK_CHRONO,
 	FLYBACK_LIST,
-#ifdef CONFIG_MOD_FLYBACK_ENABLE_INTERVAL_SCREEN
-	FLYBACK_INTERVAL,
-#endif
 	FLYBACK_END,
 };
 
@@ -209,7 +182,7 @@ static struct flyback_state {
 	struct ts_s chrono;   /* timstamp used for stopwatch start time       */
 	time_t seconds;       /* stopwatch time in seconds                    */
 	uint8_t count;        /* number of records in use                     */
-	uint8_t display;      /* displayed record on list and interval screen */
+	uint8_t display;      /* displayed record                             */
 	uint8_t mode;         /* active screen                                */
 } flyback_state;
 
@@ -465,71 +438,6 @@ static void flyback_list_updown(int mark)
 		flyback_state_down();
 }
 
-/************************* interval screen ************************/
-
-#ifdef CONFIG_MOD_FLYBACK_ENABLE_INTERVAL_SCREEN
-static void flyback_interval_init()
-{
-	display_symbol(FLYBACK_INTERVAL, LCD_ICON_ALARM, SEG_ON);
-	display_symbol(FLYBACK_INTERVAL, LCD_SEG_L1_COL, SEG_ON);
-	display_symbol(FLYBACK_INTERVAL, LCD_SEG_L2_COL0, SEG_ON);
-}
-
-static void flyback_interval_statechange()
-{
-	uint8_t hour;
-	uint8_t min;
-	uint8_t sec;
-	time_t seconds;
-	int res;
-
-	if (flyback_state.count == 0) {
-		_printf(FLYBACK_INTERVAL, LCD_SEG_L2_5_4, "%02u", 0);
-		flyback_update_mark(FLYBACK_INTERVAL, FLYBACK_MARK_NONE);
-	} else {
-		_printf(FLYBACK_INTERVAL, LCD_SEG_L2_5_4, "%02u", flyback_state.display + 1);
-		flyback_update_mark(FLYBACK_INTERVAL, flyback_state.ts[flyback_state.display].mark);
-	}
-	display_char(FLYBACK_INTERVAL, LCD_SEG_L2_3, ' ', SEG_SET);
-	display_char(FLYBACK_INTERVAL, LCD_SEG_L2_2, ' ', SEG_SET);
-	display_symbol(FLYBACK_INTERVAL, LCD_SYMB_MAX,
-				   flyback_state.count == FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
-
-	if (flyback_state.display == 0) {
-		_printf(FLYBACK_INTERVAL, LCD_SEG_L1_3_2, "%02u", 0);
-		_printf(FLYBACK_INTERVAL, LCD_SEG_L1_1_0, "%02u", 0);
-		_printf(FLYBACK_INTERVAL, LCD_SEG_L2_1_0, "%02u", 0);
-		return;
-	}
-
-	res = flyback_diff_ts(&flyback_state.ts[flyback_state.display - 1],
-	                     &flyback_state.ts[flyback_state.display],
-	                     &seconds);
-
-	if (res != 0 || seconds >= HUNDREDHOURS) {
-		display_chars(FLYBACK_INTERVAL, LCD_SEG_L1_3_0, "----", SEG_SET);
-		display_chars(FLYBACK_INTERVAL, LCD_SEG_L2_2_0,   "--", SEG_SET);
-		return;
-	}
-
-	sec   = (seconds % 60);
-	min   = (seconds / 60) % 60;
-	hour  = (seconds / 60) / 60;
-
-	_printf(FLYBACK_INTERVAL, LCD_SEG_L1_3_2, "%02u", hour);
-	_printf(FLYBACK_INTERVAL, LCD_SEG_L1_1_0, "%02u", min);
-	_printf(FLYBACK_INTERVAL, LCD_SEG_L2_1_0, "%02u", sec);
-}
-
-static void flyback_interval_updown(int mark)
-{
-	if (mark == FLYBACK_MARK_UP)
-		flyback_state_up();
-	else
-		flyback_state_down();
-}
-#endif
-
 static struct flyback_screen flyback_screens[] = {
 #ifdef CONFIG_MOD_FLYBACK_ENABLE_COUNTER_SCREEN
 	{
@@ -554,15 +462,6 @@ static struct flyback_screen flyback_screens[] = {
 		.stopwatch   = NULL,
 		.updown      = flyback_list_updown,
 	},
-#ifdef CONFIG_MOD_FLYBACK_ENABLE_INTERVAL_SCREEN
-	{
-		.init        = flyback_interval_init,
-		.statechange = flyback_interval_statechange,
-		.event     	 = NULL,
-		.stopwatch 	 = NULL,
-		.updown    	 = flyback_interval_updown,
-	},
-#endif
 };
 
 /**********************************************************************/
