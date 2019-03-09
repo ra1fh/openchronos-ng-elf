@@ -182,7 +182,7 @@ static struct flyback_state {
 	struct ts_s chrono;   /* timstamp used for stopwatch start time       */
 	time_t seconds;       /* stopwatch time in seconds                    */
 	uint8_t count;        /* number of records in use                     */
-	uint8_t display;      /* displayed record                             */
+	uint8_t display_count;/* displayed record on list and interval screen */
 	uint8_t mode;         /* active screen                                */
 } flyback_state;
 
@@ -200,11 +200,12 @@ static void flyback_statechange();
 static void flyback_make_tm(struct tm* tm, struct ts_s *ts);
 static void flyback_copy_rtc(struct ts_s *ts, int mark);
 static int flyback_diff_ts(struct ts_s *ts1, struct ts_s *ts2, time_t *s);
-static void flyback_update_mark(int display, int mark);
+static int flyback_diff_entries(int res, int i1, int i2);
 static void flyback_state_record(int mark);
 static void flyback_state_up();
 static void flyback_state_down();
 static void flyback_num_pressed();
+static void flyback_update_mark(int display, int mark);
 
 /**********************************************************************/
 /**************************** SCREENS *********************************/
@@ -407,9 +408,9 @@ static void flyback_list_init()
 static void flyback_list_enter()
 {
 	if (flyback_state.count > 0) {
-		flyback_state.display = flyback_state.count - 1;
+		flyback_state.display_count = flyback_state.count - 1;
 	} else {
-		flyback_state.display = 0;
+		flyback_state.display_count = 0;
 	} 
 }
 
@@ -423,14 +424,14 @@ static void flyback_list_statechange()
 		flyback_update_mark(FLYBACK_LIST, FLYBACK_MARK_NONE);
 		display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_OFF);
 	} else {
-		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", flyback_state.ts[flyback_state.display].hour);
-		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", flyback_state.ts[flyback_state.display].min);
-		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", flyback_state.ts[flyback_state.display].sec);
-		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display + 1);
-		flyback_update_mark(FLYBACK_LIST, flyback_state.ts[flyback_state.display].mark);
-		if (flyback_state.ts[flyback_state.display].day != rtca_time.day ||
-			flyback_state.ts[flyback_state.display].mon != rtca_time.mon ||
-			flyback_state.ts[flyback_state.display].year != rtca_time.year) {
+		_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", flyback_state.ts[flyback_state.display_count].hour);
+		_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", flyback_state.ts[flyback_state.display_count].min);
+		_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", flyback_state.ts[flyback_state.display_count].sec);
+		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count + 1);
+		flyback_update_mark(FLYBACK_LIST, flyback_state.ts[flyback_state.display_count].mark);
+		if (flyback_state.ts[flyback_state.display_count].day != rtca_time.day ||
+			flyback_state.ts[flyback_state.display_count].mon != rtca_time.mon ||
+			flyback_state.ts[flyback_state.display_count].year != rtca_time.year) {
 			display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_ON);
 		} else {
 			display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_OFF);
@@ -529,6 +530,33 @@ static int flyback_diff_ts(struct ts_s *ts1, struct ts_s *ts2, time_t *s)
 	return 0; /* success */
 }
 
+static int flyback_diff_entries(int res, int i1, int i2) {
+	time_t seconds;
+	if (flyback_state.display_count == 0) {
+		flyback_state.ts[res].mark = FLYBACK_MARK_NONE;
+		flyback_state.ts[res].hour = 0;
+		flyback_state.ts[res].min = 0;
+		flyback_state.ts[res].sec = 0;
+	} else if (flyback_state.display_count == 1) {
+		flyback_state.ts[res].mark = flyback_state.ts[1].mark;
+		flyback_state.ts[res].hour = 0;
+		flyback_state.ts[res].min = 0;
+		flyback_state.ts[res].sec = 0;
+	} else {
+		flyback_state.ts[res].mark = flyback_state.ts[i2].mark;
+		res = flyback_diff_ts(&flyback_state.ts[i1],
+							  &flyback_state.ts[i2],
+							  &seconds);
+		if (res != 0 || seconds >= HUNDREDHOURS) {
+			return 0;
+		}
+		flyback_state.ts[res].sec   = (seconds % 60);
+		flyback_state.ts[res].min   = (seconds / 60) % 60;
+		flyback_state.ts[res].hour  = (seconds / 60) / 60;
+	}
+	return 1;
+}
+
 static void flyback_update_mark(int display, int mark)
 {
 	switch(mark) {
@@ -564,15 +592,15 @@ static void flyback_state_record(int mark)
 
 static void flyback_state_up()
 {
-	if (flyback_state.display + 1 < flyback_state.count)
-		flyback_state.display++;
+	if (flyback_state.display_count + 1 < flyback_state.count)
+		flyback_state.display_count++;
 	flyback_statechange();
 }
 
 static void flyback_state_down()
 {
-	if (flyback_state.display > 0)
-		flyback_state.display--;
+	if (flyback_state.display_count > 0)
+		flyback_state.display_count--;
 	flyback_statechange();
 }
 
