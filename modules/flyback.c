@@ -39,7 +39,7 @@
  * - counter screen (heart symbol)
  * - chrono screen (stopwatch symbol)
  * - list screen (record symbol)
- * 
+ *
  * The counter screen can be switched off at compile time.
  *
  * On the counter and chrono screens, both the up and the down button
@@ -61,7 +61,7 @@
  * (RTC) time into memory slots. The flyback stopwatch uses a
  * separate memory slot so that the stopwatch continues to work when
  * all memory slots are used.
- * 
+ *
  * When changing the time in the clock module, stored timestamps are
  * not adjusted. This means that the stopwatch view and interval times
  * to previously stored timestamps might become inaccurate.
@@ -154,7 +154,7 @@ enum {
 #define FLYBACK_FIRST_SCREEN 0
 
 enum {
-	FLYBACK_MARK_NONE, 
+	FLYBACK_MARK_NONE,
 	FLYBACK_MARK_UP,
 	FLYBACK_MARK_DOWN,
 	FLYBACK_MARK_BOTH,
@@ -186,15 +186,16 @@ static struct flyback_state {
 	uint8_t mode;         /* active screen                                */
 } flyback_state;
 
-struct flyback_screen {
+static struct flyback_screen {
 	void (*init)();                      /* initialization once on mode activation                 */
+	void (*enter)();                     /* called on screen activation                            */
 	void (*statechange)();               /* flyback_state changed (new record, display change ...) */
 	void (*stopwatch)();                 /* stopwatch time changed                                 */
 	void (*event)(enum sys_message msg); /* standard events                                        */
 	void (*updown)(int mark);            /* up/down button pressed                                 */
-};
+} flyback_screens[];
 
-static void flyback_stopwatch(); 
+static void flyback_stopwatch();
 static void flyback_statechange();
 static void flyback_make_tm(struct tm* tm, struct ts_s *ts);
 static void flyback_copy_rtc(struct ts_s *ts, int mark);
@@ -351,7 +352,7 @@ static void flyback_chrono_stopwatch()
 	uint8_t hour;
 	uint8_t min;
 	uint8_t sec;
-	
+
 	if (flyback_state.count == 0) {
 		_printf(FLYBACK_CHRONO, LCD_SEG_L2_5_4, "%02u", 0);
 		_printf(FLYBACK_CHRONO, LCD_SEG_L2_3_2, "%02u", 0);
@@ -392,7 +393,7 @@ static void flyback_chrono_stopwatch()
 static void flyback_chrono_updown(int mark)
 {
 	flyback_state_record(mark);
-}	
+}
 
 /*************************** list screen **************************/
 
@@ -401,6 +402,15 @@ static void flyback_list_init()
 	display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_ON);
 	display_symbol(FLYBACK_LIST, LCD_SEG_L1_COL, SEG_ON);
 	display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+}
+
+static void flyback_list_enter()
+{
+	if (flyback_state.count > 0) {
+		flyback_state.display = flyback_state.count - 1;
+	} else {
+		flyback_state.display = 0;
+	} 
 }
 
 static void flyback_list_statechange()
@@ -442,6 +452,7 @@ static struct flyback_screen flyback_screens[] = {
 #ifdef CONFIG_MOD_FLYBACK_ENABLE_COUNTER_SCREEN
 	{
 		.init        = flyback_counter_init,
+		.enter       = NULL,
 		.statechange = flyback_counter_statechange,
 		.stopwatch 	 = flyback_counter_stopwatch,
 		.event     	 = flyback_counter_event,
@@ -450,6 +461,7 @@ static struct flyback_screen flyback_screens[] = {
 #endif
 	{
 		.init        = flyback_chrono_init,
+		.enter       = NULL,
 		.statechange = flyback_chrono_statechange,
 		.stopwatch 	 = flyback_chrono_stopwatch,
 		.event     	 = flyback_chrono_event,
@@ -457,6 +469,7 @@ static struct flyback_screen flyback_screens[] = {
 	},
 	{
 		.init        = flyback_list_init,
+		.enter       = flyback_list_enter,
 		.statechange = flyback_list_statechange,
 		.event       = NULL,
 		.stopwatch   = NULL,
@@ -602,10 +615,9 @@ static void flyback_activate()
 			flyback_screens[i].init();
 		}
 	}
-	flyback_state.display = 0;
 	flyback_state.mode = FLYBACK_END - 1;
 	flyback_num_pressed();
-	
+
 	sys_messagebus_register(&flyback_event,
 	                        SYS_MSG_RTC_HOUR | SYS_MSG_RTC_MINUTE | SYS_MSG_RTC_SECOND
 	);
@@ -629,10 +641,8 @@ static void flyback_num_pressed()
 	}
 	lcd_screen_activate(flyback_state.mode);
 
-	if (flyback_state.count > 0) {
-		flyback_state.display = flyback_state.count - 1;
-	} else {
-		flyback_state.display = 0;
+	if (flyback_screens[flyback_state.mode].enter) {
+		flyback_screens[flyback_state.mode].enter();
 	}
 
 	flyback_statechange();
@@ -642,7 +652,6 @@ static void flyback_num_pressed()
 static void flyback_reset_all()
 {
 	flyback_state.count = 0;
-	flyback_state.display = 0;
 	flyback_state.mode = FLYBACK_END - 1;
 	flyback_num_pressed();
 }
@@ -666,12 +675,12 @@ static void flyback_reset_one()
 	if (flyback_state.count > 0) {
 		flyback_state.count--;
 		if (flyback_state.count > 0) {
-			flyback_state.display = flyback_state.count - 1;
 			memcpy(&flyback_state.chrono,
 			       &flyback_state.ts[flyback_state.count -1],
 			       sizeof(flyback_state.chrono));
-		} else {
-			flyback_state.display = 0;
+		}
+		if (flyback_screens[flyback_state.mode].enter) {
+			flyback_screens[flyback_state.mode].enter();
 		}
 		flyback_stopwatch();
 		flyback_statechange();
