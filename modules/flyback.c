@@ -240,9 +240,6 @@ static void flyback_update_mark(int display, int mark);
 static void flyback_counter_init()
 {
 	display_symbol(FLYBACK_COUNTER, LCD_ICON_HEART, SEG_ON);
-	display_symbol(FLYBACK_COUNTER, LCD_SEG_L1_COL, SEG_ON);
-	display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_ON);
-	display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " 000", SEG_SET);
 }
 
 static void flyback_counter_statechange()
@@ -279,14 +276,14 @@ static void flyback_counter_stopwatch()
 	uint8_t sec;
 
 	if (flyback_state.count == 0) {
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_5_4, "%02u", 0);
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " 000", SEG_SET);
+		display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " 000", SEG_SET);
+		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_ON);
 		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
 		flyback_update_mark(FLYBACK_COUNTER, FLYBACK_MARK_NONE);
 		return;
 	}
 	if (flyback_state.seconds < 0) {
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " -E-", SEG_SET);
+		display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " -E-", SEG_SET);
 		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_OFF);
 		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
 		return;
@@ -297,7 +294,7 @@ static void flyback_counter_stopwatch()
 	hour  = (flyback_state.seconds / 60) / 60;
 
 	if (flyback_state.seconds >= HUNDREDHOURS) {
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " ---", SEG_SET);
+		display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " ---", SEG_SET);
 		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_OFF);
 		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
 	} else if (flyback_state.seconds >= TENHOURS) {
@@ -331,14 +328,6 @@ static void flyback_counter_updown(int mark)
 static void flyback_chrono_init()
 {
 	display_symbol(FLYBACK_CHRONO, LCD_ICON_STOPWATCH, SEG_ON);
-	display_symbol(FLYBACK_CHRONO, LCD_SEG_L1_COL, SEG_ON);
-	display_symbol(FLYBACK_CHRONO, LCD_SEG_L2_COL0, SEG_ON);
-	display_symbol(FLYBACK_CHRONO, LCD_SEG_L2_COL1, SEG_ON);
-	display_bits(FLYBACK_CHRONO, LCD_SEG_L2_5, 0x00, SEG_SET);
-	display_bits(FLYBACK_CHRONO, LCD_SEG_L2_4, 0x05, SEG_SET);
-	_printf(FLYBACK_CHRONO, LCD_SEG_L2_5_4, "%02u", 0);
-	_printf(FLYBACK_CHRONO, LCD_SEG_L2_3_2, "%02u", 0);
-	_printf(FLYBACK_CHRONO, LCD_SEG_L2_1_0, "%02u", 0);
 }
 
 static void flyback_chrono_statechange()
@@ -374,9 +363,9 @@ static void flyback_chrono_stopwatch()
 	uint8_t sec;
 
 	if (flyback_state.count == 0) {
-		_printf(FLYBACK_CHRONO, LCD_SEG_L2_5_4, "%02u", 0);
-		_printf(FLYBACK_CHRONO, LCD_SEG_L2_3_2, "%02u", 0);
-		_printf(FLYBACK_CHRONO, LCD_SEG_L2_1_0, "%02u", 0);
+		display_chars(FLYBACK_CHRONO, LCD_SEG_L2_5_0, "000000", SEG_SET);
+		display_symbol(FLYBACK_CHRONO, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_CHRONO, LCD_SEG_L2_COL1, SEG_ON);
 		flyback_update_mark(FLYBACK_CHRONO, FLYBACK_MARK_NONE);
 		return;
 	}
@@ -421,7 +410,6 @@ static void flyback_list_init()
 {
 	display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_ON);
 	display_symbol(FLYBACK_LIST, LCD_SEG_L1_COL, SEG_ON);
-	display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
 }
 
 static void flyback_list_enter()
