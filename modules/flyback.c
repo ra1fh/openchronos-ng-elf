@@ -209,6 +209,8 @@ static struct flyback_state {
 	uint8_t count;        /* number of ts records in use                  */
 	uint8_t display_mode; /* display mode for list and interval screen    */
 	uint8_t display_count;/* displayed record on list and interval screen */
+	uint8_t display_date; /* handle time/date alternating                 */
+	uint8_t display_exceed; 
 } flyback_state;
 
 static struct flyback_screen {
@@ -416,6 +418,8 @@ static void flyback_list_enter()
 {
 	flyback_state.display_count = flyback_state.count;
 	flyback_state.display_mode = FLYBACK_LIST_TOTAL;
+	flyback_state.display_date = 0;
+	flyback_state.display_exceed = 0;
 }
 
 static void flyback_list_statechange()
@@ -430,7 +434,9 @@ static void flyback_list_statechange()
 	switch (flyback_state.display_mode) {
 	case FLYBACK_LIST_TOTAL:
 		display_chars(FLYBACK_LIST, LCD_SEG_L2_3_2, "  ", SEG_SET);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L1_COL, SEG_ON);
 		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L1_DP1, SEG_OFF);
 		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_ON);
 		display_symbol(FLYBACK_LIST, LCD_ICON_RECORD, SEG_SET | BLINK_OFF);
 		flyback_update_mark(FLYBACK_LIST, FLYBACK_MARK_BOTH);
@@ -447,7 +453,9 @@ static void flyback_list_statechange()
 	case FLYBACK_LIST_INTERVAL:
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_3, 0x40, SEG_SET);
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_2, 0x04, SEG_SET);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L1_COL, SEG_ON);
 		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L1_DP1, SEG_OFF);
 		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_OFF);
 		if (flyback_diff_entries(0, flyback_state.display_count - 1, flyback_state.display_count) < 0) {
 			display_chars(FLYBACK_LIST, LCD_SEG_L1_3_0, "----", SEG_SET);
@@ -464,7 +472,9 @@ static void flyback_list_statechange()
 	case FLYBACK_LIST_TIMESTAMP:
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_3, 0x20, SEG_SET);
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_2, 0x01, SEG_SET);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L1_COL, SEG_ON);
 		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
+		display_symbol(FLYBACK_LIST, LCD_SEG_L1_DP1, SEG_OFF);
 		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_OFF);
 		if (flyback_state.display_count == 0) {
 			hour = min = sec = 0;
@@ -478,8 +488,21 @@ static void flyback_list_statechange()
 			if (flyback_state.ts[flyback_state.display_count].day != rtca_time.day ||
 				flyback_state.ts[flyback_state.display_count].mon != rtca_time.mon ||
 				flyback_state.ts[flyback_state.display_count].year != rtca_time.year) {
+				flyback_state.display_exceed = 1;
 				blink = BLINK_ON;
+				if (flyback_state.display_date & 0x2) {
+					display_symbol(FLYBACK_LIST, LCD_SEG_L1_COL, SEG_OFF);
+					display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_OFF);
+					display_symbol(FLYBACK_LIST, LCD_SEG_L1_DP1, SEG_ON);
+					_printf(FLYBACK_LIST, LCD_SEG_L1_3_2, "%02u", flyback_state.ts[flyback_state.display_count].day);
+					_printf(FLYBACK_LIST, LCD_SEG_L1_1_0, "%02u", flyback_state.ts[flyback_state.display_count].mon);
+					_printf(FLYBACK_LIST, LCD_SEG_L2_1_0, "%02u", flyback_state.ts[flyback_state.display_count].year % 100);
+					flyback_update_mark(FLYBACK_LIST, mark);
+					return;
+				}
 			} else {
+				flyback_state.display_exceed = 0;
+				flyback_state.display_date = 0;
 				blink = BLINK_OFF;
 			}
 		}
@@ -494,6 +517,18 @@ static void flyback_list_statechange()
 		(void) 0;
 		break;
 	}
+}
+
+static void flyback_list_event(enum sys_message msg) {
+{
+	if (msg & SYS_MSG_RTC_SECOND) {
+		if (flyback_state.display_exceed) {
+			flyback_state.display_date++;
+			flyback_list_statechange();
+		}
+	}
+}
+
 }
 
 static void flyback_list_updown(int mark)
@@ -577,7 +612,7 @@ static struct flyback_screen flyback_screens[] = {
 		.init        = flyback_list_init,
 		.enter       = flyback_list_enter,
 		.statechange = flyback_list_statechange,
-		.event       = NULL,
+		.event       = flyback_list_event,
 		.stopwatch   = NULL,
 		.updown      = flyback_list_updown,
 	},
