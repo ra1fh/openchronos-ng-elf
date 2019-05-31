@@ -36,17 +36,13 @@
  * stamp. Short press of '#' will cycle through up to four different
  * screens. Each screen has it's own symbol in the middle symbol line:
  *
- * - counter screen (heart symbol)
  * - chrono screen (stopwatch symbol)
  * - list screen (record symbol)
  *
- * The counter screen can be switched off at compile time.
- *
- * On the counter and chrono screens, both the up and the down button
- * will record a new timestamp and restart the stopwatch from
- * zero. Which button was used to restart the timer is stored along
- * with the timestamp. This can be used to differentiate events
- * (start, stop, ...).
+ * On the chrono screen, both the up and the down button will record a
+ * new timestamp and restart the stopwatch from zero. Which button was
+ * used to restart the timer is stored along with the timestamp. This
+ * can be used to differentiate events (start, stop, ...).
  *
  * On the list screen, the up and down buttons will scroll through the
  * recorded timestamps or the list of time intervals between recorded
@@ -66,36 +62,19 @@
  * not adjusted. This means that the stopwatch view and interval times
  * to previously stored timestamps might become inaccurate.
  *
- * === 1. COUNTER SCREEN ===
+ * === 1. CHRONO SCREEN ===
  *
- * The upper line of the counter screen shows the current clock
- * time. The lower left two digits show the current number of recorded
- * timestamps. The right three digit of the lower line show the
- * stopwatch time in minutes and seconds. When exceeding ten minutes
- * the display will switch to hours and minutes, indicated by the "mi"
- * symbol to the right. When exceeding 10 hours, the display will
- * switch to two digits with hours and the letter 'h' in the third
- * digit. When exceeding 100 hours, the stopwatch will show '---'.
- *
- * When 19 records have been recorded, this will be indicated by the
- * "MAX" symbol in the lower part of the screen. The flyback stopwatch
- * function is still available, but the last timestamp will be
- * overwritten with subsequent timestamp recordings.
- *
- * === 2. CHRONO SCREEN ===
- *
- * The chrono screen is similar to the counter screen. It will show the
- * current time in the first line. There is no counter in the second
- * line. All the digits of the second line are used to display a
- * higher precision stopwatch. Up to 20 hours it will show
- * hours:minutes:seconds. After 20 hours up to 100 hours it will switch
- * to four digits showing hours:minutes. When exceeding 100 hours the
- * display will show '-----'.
+ * The chrono will show the current time in the first line. All the
+ * digits of the second line are used to display the stopwatch
+ * timer. Up to 20 hours it will show hours:minutes:seconds. After 20
+ * hours up to 100 hours it will switch to four digits showing
+ * hours:minutes. When exceeding 100 hours the display will show
+ * '-----'.
  *
  * The up and down buttons will restart the stopwatch and record the
  * current time in a memory slot.
  *
- * === 3. LIST SCREEN ===
+ * === 2. LIST SCREEN ===
  *
  * The list screen shows the total time from first to last timestamp,
  * the recorded timestamps and intervals. It starts with the total
@@ -141,7 +120,7 @@
  *   be inaccurate, as well as the stopwatch time.
  *
  * - If for some reason the time delta calculation returns an error,
- *   the counter screen and chrono screen might show '-E-' where the
+ *   the chrono screen might show '-E-' where the
  *   stopwatch time is normally shown. This can happen if the
  *   conversion from RTC time to seconds returns a negative number or
  *   the difference between the values get negative.
@@ -161,9 +140,6 @@
 #include "drivers/timer.h"
 
 enum {
-#ifdef CONFIG_MOD_FLYBACK_ENABLE_COUNTER_SCREEN
-	FLYBACK_COUNTER,
-#endif
 	FLYBACK_CHRONO,
 	FLYBACK_LIST,
 	FLYBACK_END,
@@ -233,95 +209,6 @@ static void flyback_update_mark(int display, int mark);
 /**********************************************************************/
 /**************************** SCREENS *********************************/
 /**********************************************************************/
-
-/************************* counter screen *****************************/
-
-#ifdef CONFIG_MOD_FLYBACK_ENABLE_COUNTER_SCREEN
-static void flyback_counter_init()
-{
-	display_symbol(FLYBACK_COUNTER, LCD_ICON_HEART, SEG_ON);
-}
-
-static void flyback_counter_statechange()
-{
-	uint8_t mark;
-	if (flyback_state.count) {
-		mark = flyback_state.ts[flyback_state.count].mark;
-	} else {
-		mark = FLYBACK_MARK_NONE;
-	}
-	flyback_update_mark(FLYBACK_COUNTER, mark);
-	_printf(FLYBACK_COUNTER, LCD_SEG_L2_5_4, "%02u", flyback_state.count);
-	display_symbol(FLYBACK_COUNTER, LCD_SYMB_MAX,
-				   flyback_state.count >= FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
-}
-
-static void flyback_counter_event(enum sys_message msg)
-{
-	if (msg & SYS_MSG_RTC_SECOND) {
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L1_COL, ((rtca_time.sec & 0x01) ? SEG_ON : SEG_OFF));
-	}
-	if (msg & SYS_MSG_RTC_HOUR) {
-		_printf(FLYBACK_COUNTER, LCD_SEG_L1_3_2, "%02u", rtca_time.hour);
-	}
-	if (msg & SYS_MSG_RTC_MINUTE) {
-		_printf(FLYBACK_COUNTER, LCD_SEG_L1_1_0, "%02u", rtca_time.min);
-	}
-}
-
-static void flyback_counter_stopwatch()
-{
-	uint8_t hour;
-	uint8_t min;
-	uint8_t sec;
-
-	if (flyback_state.count == 0) {
-		display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " 000", SEG_SET);
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_ON);
-		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
-		flyback_update_mark(FLYBACK_COUNTER, FLYBACK_MARK_NONE);
-		return;
-	}
-	if (flyback_state.seconds < 0) {
-		display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " -E-", SEG_SET);
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_OFF);
-		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
-		return;
-	}
-
-	sec   = (flyback_state.seconds % 60);
-	min   = (flyback_state.seconds / 60) % 60;
-	hour  = (flyback_state.seconds / 60) / 60;
-
-	if (flyback_state.seconds >= HUNDREDHOURS) {
-		display_chars(FLYBACK_COUNTER, LCD_SEG_L2_3_0, " ---", SEG_SET);
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_OFF);
-		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
-	} else if (flyback_state.seconds >= TENHOURS) {
-		/* show hours as: _15h */
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_3_1, " %02u", hour);
-		display_bits(FLYBACK_COUNTER, LCD_SEG_L2_0, 0x47, SEG_SET); // 'h'
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_OFF);
-		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
-	} else if (flyback_state.seconds >= TENMINUTES) {
-		/* show hours/minutes as: _9:59 */
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_3_2, " %1u", hour);
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_1_0, "%02u", min);
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_ON);
-		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_ON);
-	} else {
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_3_2, " %1u", min);
-		_printf(FLYBACK_COUNTER, LCD_SEG_L2_1_0, "%02u", sec);
-		display_symbol(FLYBACK_COUNTER, LCD_SEG_L2_COL0, SEG_ON);
-		display_symbol(FLYBACK_COUNTER, LCD_UNIT_L2_MI, SEG_OFF);
-	}
-}
-
-static void flyback_counter_updown(int mark)
-{
-	flyback_state_record(mark);
-}
-#endif
 
 /************************** chrono screen ***************************/
 
@@ -555,16 +442,6 @@ static void flyback_list_updown(int mark)
 }
 
 static struct flyback_screen flyback_screens[] = {
-#ifdef CONFIG_MOD_FLYBACK_ENABLE_COUNTER_SCREEN
-	{
-		.init        = flyback_counter_init,
-		.enter       = NULL,
-		.statechange = flyback_counter_statechange,
-		.stopwatch 	 = flyback_counter_stopwatch,
-		.event     	 = flyback_counter_event,
-		.updown    	 = flyback_counter_updown,
-	},
-#endif
 	{
 		.init        = flyback_chrono_init,
 		.enter       = NULL,
