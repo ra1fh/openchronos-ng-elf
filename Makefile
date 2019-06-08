@@ -47,6 +47,9 @@ CFLAGS	+= $(CFLAGS_DBG)
 LDFLAGS	+= $(LDFLAGS_DBG)
 endif
 
+GITHASH := $(shell git rev-parse --short HEAD | tr 'a-z' 'A-Z')
+CFLAGS += -DGITHASH=\"$(GITHASH)\"
+
 # rebuild if CFLAGS changed, as suggested in:
 # http://stackoverflow.com/questions/3236145/force-gnu-make-to-rebuild-objects-affected-by-compiler-definition/3237349#3237349
 openchronos.cflags: force
