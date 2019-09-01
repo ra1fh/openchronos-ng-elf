@@ -310,12 +310,12 @@ static void flyback_list_statechange()
 	uint8_t hour, min, sec, mark;
 	uint8_t blink;
 
-	_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count);
 	display_symbol(FLYBACK_LIST, LCD_SYMB_MAX,
 				   flyback_state.count >= FLYBACK_MAX_TIMESTAMPS ? SEG_ON : SEG_OFF);
 
 	switch (flyback_state.display_mode) {
 	case FLYBACK_LIST_TOTAL:
+		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count);
 		display_chars(FLYBACK_LIST, LCD_SEG_L2_3_2, "  ", SEG_SET);
 		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
 		display_symbol(FLYBACK_LIST, LCD_SYMB_TOTAL, SEG_ON);
@@ -332,6 +332,11 @@ static void flyback_list_statechange()
 		break;
 
 	case FLYBACK_LIST_INTERVAL:
+		/* we enter list mode with minimum 2 records, so display count is 2.
+		 * it makes most sense to start numbering interval at 1, so we subtract
+		 * 1 from display_count
+		 */
+		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count - 1);
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_3, 0x40, SEG_SET);
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_2, 0x04, SEG_SET);
 		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
@@ -349,6 +354,7 @@ static void flyback_list_statechange()
 		break;
 
 	case FLYBACK_LIST_TIMESTAMP:
+		_printf(FLYBACK_LIST, LCD_SEG_L2_5_4, "%02u", flyback_state.display_count);
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_3, 0x20, SEG_SET);
 		display_bits(FLYBACK_LIST, LCD_SEG_L2_2, 0x01, SEG_SET);
 		display_symbol(FLYBACK_LIST, LCD_SEG_L2_COL0, SEG_ON);
@@ -392,7 +398,7 @@ static void flyback_list_updown(int mark)
 			flyback_state.display_mode = FLYBACK_LIST_TIMESTAMP;
 			flyback_statechange();
 		}
-		if (mark == FLYBACK_MARK_DOWN && flyback_state.count > 2) {
+		if (mark == FLYBACK_MARK_DOWN && flyback_state.count > 1) {
 			flyback_state.display_count = flyback_state.count;
 			flyback_state.display_mode = FLYBACK_LIST_INTERVAL;
 			flyback_statechange();
