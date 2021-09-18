@@ -88,7 +88,7 @@
  * timestamps and intervals.
 
  * Starting with the total time, scrolling down will show interval
- * time when there are 3 or more timestamps recorded. Otherwise the
+ * time when there are 2 or more timestamps recorded. Otherwise the
  * down button will not allow to scroll down.
  *
  * Starting with the total time, scrolling up with show recorded time
