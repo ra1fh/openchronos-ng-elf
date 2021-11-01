@@ -32,7 +32,7 @@ void temperature_measurement(void);
 void temperature_get_C(int16_t *temp);
 void temperature_get_F(int16_t *temp);
 
-struct {
+extern struct _temperature {
     uint16_t value;
     int16_t offset;
 } temperature;

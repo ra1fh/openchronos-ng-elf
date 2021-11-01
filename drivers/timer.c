@@ -75,6 +75,9 @@
 #define TIMER0_TICKS_FROM_MS(T) ((((uint32_t)TIMER0_FREQ) * (uint32_t)T) \
                                / ((uint32_t)1000))
 
+volatile enum timer0_event timer0_last_event;
+volatile uint16_t timer0_20hz_counter;
+
 static volatile uint8_t delay_finished;
 
 /* programable timer */

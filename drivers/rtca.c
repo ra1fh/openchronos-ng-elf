@@ -44,6 +44,9 @@ uint8_t display_am_pm = 1;
 uint8_t display_am_pm = 0;
 #endif
 
+struct DATETIME rtca_time;
+volatile enum rtca_tevent rtca_last_event;
+
 void rtca_init(void)
 {
     rtca_time.year = COMPILE_YEAR;

@@ -68,6 +68,8 @@
 static uint8_t adcresult[TEMPORAL_FILTER_WINDOW];
 static uint8_t adcresult_idx = 0;
 
+struct _temperature temperature;
+
 void temperature_init(void)
 {
     temperature.value = adc12_single_conversion(REFVSEL_0,
