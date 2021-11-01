@@ -9,12 +9,11 @@ BASH := $(shell which bash || which bash)
 .PHONY: clean
 .PHONY: install
 .PHONY: config
-.PHONY: depend
 .PHONY: doc
 .PHONY: httpdoc
 .PHONY: force
 
-all: drivers/rtca_now.h depend config.h openchronos.txt
+all: drivers/rtca_now.h config.h openchronos.txt
 
 #
 # Build list of sources and objects to build
@@ -23,16 +22,6 @@ $(foreach subdir,$(SUBDIRS), \
 	$(eval SRCS := $(SRCS) $(wildcard $(subdir)/*.c)) \
 )
 OBJS := $(patsubst %.c,%.o,$(SRCS))
-
-#
-# Dependencies rules
-depend: openchronos.dep
-
-openchronos.dep: $(SRCS)
-	@echo "Generating dependencies.."
-	@touch $@
-	@makedepend $(INCLUDES) -Y -f $@ $^ &> /dev/null
-	@rm -f $@.bak
 
 #
 # Append specific CFLAGS/LDFLAGS
@@ -99,8 +88,7 @@ clean: $(SUBDIRS)
 	@for subdir in $(SUBDIRS); do \
 		echo "Cleaning $$subdir .."; rm -f $$subdir/*.o; \
 	done
-	@rm -f *.o openchronos.elf openchronos.txt openchronos.cflags openchronos.dep output.map
-	@rm -f openchronos.dep.bak
+	@rm -f *.o openchronos.elf openchronos.txt openchronos.cflags output.map
 	@rm -f drivers/rtca_now.h
 
 doc:
@@ -111,4 +99,3 @@ httpdoc: doc
 	rsync -vr doc/ $(USER)@web.sourceforge.net:/home/project-web/openchronos-ng/htdocs/api/
 
 
--include openchronos.dep
