@@ -102,18 +102,7 @@ Press the DOWN button to enter the wireless flash updater (RFBSL). Any other but
 Useful links
 -------------
 
-Data sheet for the CC430F6137 used in the watch:
-
-[http://www.ti.com/product/CC430F6137/technicaldocuments](http://www.ti.com/product/CC430F6137/technicaldocuments)
-
-eZ430 Chronos wiki:
-
-[http://processors.wiki.ti.com/index.php/EZ430-Chronos](http://processors.wiki.ti.com/index.php/EZ430-Chronos)
-
-MSP430™ Programming With the Bootloader (BSL):
-
-[http://www.ti.com/lit/ug/slau319l/slau319l.pdf](http://www.ti.com/lit/ug/slau319l/slau319l.pdf)
-
-MSP430™ Programming With the JTAG Interface:
-
-[http://www.ti.com/lit/ug/slau320x/slau320x.pdf](http://www.ti.com/lit/ug/slau320x/slau320x.pdf)
+* [CC430F6138 Technical Documents](https://www.ti.com/product/CC430F6137)
+* [eZ430 Chronos wiki (Wayback Machine)](https://web.archive.org/web/20201112020336/https://processors.wiki.ti.com/index.php/EZ430-Chronos)
+* [MSP430™ Programming With the Bootloader (Wayback Machine)](https://web.archive.org/web/20160527090555/http://www.ti.com/lit/ug/slau319l/slau319l.pdf)
+* [MSP430™ Programming With the JTAG Interface (Wayback Machine)](https://web.archive.org/web/20161130144328/http://www.ti.com/lit/ug/slau320x/slau320x.pdf)
