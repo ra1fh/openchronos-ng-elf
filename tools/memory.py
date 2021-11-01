@@ -13,7 +13,7 @@ class Segment:
     """store a string with memory contents along with its startaddress"""
     def __init__(self, startaddress = 0, data=None):
         if data is None:
-            self.data = ''
+            self.data = b''
         else:
             self.data = data
         self.startaddress = startaddress
@@ -67,7 +67,7 @@ class Memory:
             if type == 0x00:
                 if currentAddr != address:
                     if segmentdata:
-                        self.segments.append( Segment(startAddr, ''.join(segmentdata)) )
+                        self.segments.append( Segment(startAddr, b''.join(segmentdata)) )
                     startAddr = currentAddr = address
                     segmentdata = []
                 for i in range(length):
@@ -80,7 +80,7 @@ class Memory:
             else:
                 sys.stderr.write("Ignored unknown field (type 0x%02x) in ihex file.\n" % type)
         if segmentdata:
-            self.segments.append( Segment(startAddr, ''.join(segmentdata)) )
+            self.segments.append( Segment(startAddr, b''.join(segmentdata)) )
 
     def loadTIText(self, file):
         """load data from a (opened) file in TI-Text format"""
@@ -94,17 +94,17 @@ class Memory:
             elif l[0] == '@':        #if @ => new address => send frame and set new addr.
                 #create a new segment
                 if segmentdata:
-                    self.segments.append( Segment(startAddr, ''.join(segmentdata)) )
+                    self.segments.append( Segment(startAddr, b''.join(segmentdata)) )
                 startAddr = int(l[1:],16)
                 segmentdata = []
             else:
                 for i in l.split():
                     try:
                         segmentdata.append(chr(int(i,16)))
-                    except ValueError, e:
+                    except ValueError as e:
                         raise FileFormatError('File is no valid TI-Text (%s)' % e)
         if segmentdata:
-            self.segments.append( Segment(startAddr, ''.join(segmentdata)) )
+            self.segments.append( Segment(startAddr, b''.join(segmentdata)) )
 
     def loadELF(self, file):
         """load data from a (opened) file in ELF object format.
@@ -187,10 +187,10 @@ class Memory:
     def saveTIText(self, filelike):
         """output TI-Text to given file object"""
         for segment in self.segments:
-            filelike.write("@%04x\n" % segment.startaddress)
+            filelike.write(("@%04x\n" % segment.startaddress).encode('ascii'))
             for i in range(0, len(segment.data), 16):
-                filelike.write("%s\n" % " ".join(["%02x" % ord(x) for x in segment.data[i:i+16]]))
-        filelike.write("q\n")
+                filelike.write(("%s\n" % " ".join([("%02x" % x) for x in segment.data[i:i+16]])).encode('ascii'))
+        filelike.write(b"q\n")
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     def getMemrange(self, fromadr, toadr):
@@ -268,11 +268,11 @@ if __name__ == "__main__":
 
     mem = Memory()
     mem.loadFile(options.input)
-    fp = open(options.output, "w")
+    fp = open(options.output, "wb")
     if options.format == "titxt":
-        print "convert to TI Hex"
+        print("convert to TI Hex")
         mem.saveTIText(fp)
     elif options.format == "ihex":
-        print "convert to Intel Hex"
+        print("convert to Intel Hex")
         mem.saveIHex(fp)
     fp.close()

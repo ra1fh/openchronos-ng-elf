@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # encoding: utf-8
 # vim: ts=4 noexpandtab
 
@@ -7,7 +7,7 @@ import urwid.raw_display
 import sys
 
 import re, sys, random
-from sorteddict import SortedDict
+from sortedcontainers import SortedDict
 
 import modules
 import field_encodings
@@ -200,7 +200,7 @@ def widget_changed_callback(wid, state):
     cfgname = wid._datakey
 
     deps = []
-    for key,field in DATA.iteritems():
+    for key,field in DATA.items():
         if not 'depends' in field:
             continue
 
@@ -259,12 +259,12 @@ class OpenChronosApp(object):
                        u"UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 aborts.")
 
         self.list_content = list_content = []
-        for key,field in DATA.iteritems():
+        for key,field in DATA.items():
             # generate gui forms depending on type
             self.generate_widget(key,field)
 
         # rescan widgets and disable/enable them based on their dependencies
-        for key,wid in WIDMAP.iteritems():
+        for key,wid in WIDMAP.items():
             if not hasattr(wid, '_widget'):
                 continue
             wid = wid._widget
@@ -326,7 +326,7 @@ class OpenChronosApp(object):
             wid._datakey = key
             wid._datafield = field
             f = urwid.AttrWrap(wid, 'opt','optsel')
-            if field.has_key('ischild') and field['ischild']:
+            if ('ischild' in field) and field['ischild']:
                 f = urwid.Padding(f, width=77, left=3)
             f._widget = wid
             WIDMAP[key] = f
@@ -338,7 +338,7 @@ class OpenChronosApp(object):
             wid._datakey = key
             wid._datafield = field
             f = urwid.AttrWrap(wid, 'opt', 'optsel')
-            if field.has_key('ischild') and field['ischild']:
+            if ('ischild' in field) and field['ischild']:
                 f = urwid.Padding(f, width=77, left=3)
             f._widget = wid
             WIDMAP[key] = f
@@ -359,7 +359,7 @@ class OpenChronosApp(object):
     def save_config(self):
         global WIDMAP, DATA
 
-        for key,field in WIDMAP.iteritems():
+        for key,field in WIDMAP.items():
             if not hasattr(field, '_widget'):
                 continue
 
@@ -373,7 +373,7 @@ class OpenChronosApp(object):
         fp = open("config.h", "w")
         fp.write("// !!!! DO NOT EDIT !!!, use: make config\n")
         fp.write(HEADER)
-        for key,dat in DATA.iteritems():
+        for key,dat in DATA.items():
             if not "value" in dat:
                 continue
             if "type" in dat and dat["type"] == "info":
@@ -399,7 +399,7 @@ class OpenChronosApp(object):
         global DATA
 
         def set_default():
-            for key,dat in DATA.iteritems():
+            for key,dat in DATA.items():
                 if not "value" in dat and "default" in dat:
                     dat["value"] = dat["default"]
 

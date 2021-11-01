@@ -18,13 +18,13 @@
 #
 
 import os
-import ConfigParser
+import configparser
 
 
 #My python foo isn't strong enough
 def get_menu_order(mod):
     cfgname = "modules/%s.cfg" % (mod)
-    cfg = ConfigParser.RawConfigParser()
+    cfg = configparser.RawConfigParser()
     cfg.read(cfgname)
     try:
         return int(cfg.get(cfg.sections()[0], 'menu_order'))
@@ -44,7 +44,7 @@ def read_config():
     mods = get_modules()
     for mod in mods:
         cfgname = "modules/%s.cfg" % (mod)
-        cfg = ConfigParser.RawConfigParser()
+        cfg = configparser.RawConfigParser()
         cfg.read(cfgname)
         parent = mod.upper()
         sectNr = 0
@@ -53,7 +53,7 @@ def read_config():
                 name = cfg.get(section, 'name')
                 help = cfg.get(section, 'help')
             except ConfigParser.NoOptionError:
-                print "%s:%s: Error: name, help are mandatory!" % (cfgname, section)
+                print("%s:%s: Error: name, help are mandatory!" % (cfgname, section))
                 continue
 
             item = {
@@ -63,15 +63,15 @@ def read_config():
             }
 
             opt =  {'type': "bool", 'default': "", 'depends': "", 'encoding': None}
-            for key,default in opt.iteritems():
+            for key,default in opt.items():
                 try:
                     item[key] = cfg.get(section, key)
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     if default != None:
                         item[key] = default
 
             # build dependency array from string
-            item['depends'] = filter(None, map(lambda x: x.strip(), item['depends'].split(',')))
+            item['depends'] = list(filter(None, map(lambda x: x.strip(), item['depends'].split(','))))
             if sectNr > 0: item['depends'].append( "CONFIG_MOD_%s" % (parent) )
 
             # Special treatment for booleans
@@ -80,11 +80,11 @@ def read_config():
 
             DATA.append( ("CONFIG_MOD_%s" % (section), item) )
             if sectNr == 0 and section != parent:
-                print "%s: Warn: The [%s] section must be the first!" \
-                        % (cfgname, item['parent'])
+                print("%s: Warn: The [%s] section must be the first!" \
+                        % (cfgname, item['parent']))
             if not section.startswith(parent):
-                print "%s:%s: Warn: section name should have prefix '%s_'" \
-                        % (cfgname, section, parent)
+                print("%s:%s: Warn: section name should have prefix '%s_'" \
+                        % (cfgname, section, parent))
 
             sectNr += 1
 

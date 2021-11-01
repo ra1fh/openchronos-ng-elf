@@ -2,7 +2,7 @@ SUBDIRS = drivers modules
 
 include Common.mk
 
-PYTHON := $(shell which python2 || which python)
+PYTHON := $(shell which python3 || which python)
 BASH := $(shell which bash || which bash)
 
 .PHONY: all

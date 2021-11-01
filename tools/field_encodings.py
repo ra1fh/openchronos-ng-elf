@@ -19,7 +19,7 @@ def b32encode_each(string, decode):
         return '"' + "".join(map(lambda x: "\\x%02x" % ord(x), list(key))) + '"', len(key)
     else:
         s = "".join(map(lambda x: chr(int("0x" + x, 16)), string.replace('"', '').split("\\x")[1:]))
-        return base64.b32encode(s), None
+        return base64.b32encode(s.encode()).decode('ASCII'), None
 
 
 def b32encode(strings, decode):

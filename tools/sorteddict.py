@@ -26,7 +26,7 @@ class SortedDict(dict):
 
     def __deepcopy__(self, memo):
         return self.__class__([(key, deepcopy(value, memo))
-                               for key, value in self.iteritems()])
+                               for key, value in self.items()])
 
     def __setitem__(self, key, value):
         if key not in self:
@@ -75,7 +75,7 @@ class SortedDict(dict):
             yield self[key]
 
     def update(self, dict_):
-        for k, v in dict_.iteritems():
+        for k, v in dict_.items():
             self[k] = v
 
     def setdefault(self, key, default):
