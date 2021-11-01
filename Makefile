@@ -3,7 +3,6 @@ SUBDIRS = drivers modules
 include Common.mk
 
 PYTHON := $(shell which python3 || which python)
-BASH := $(shell which bash || which bash)
 
 .PHONY: all
 .PHONY: clean
@@ -72,7 +71,7 @@ config.h:
 
 drivers/rtca_now.h:
 	@echo "Generating $@"
-	@$(BASH) ./tools/update_rtca_now.sh
+	/bin/sh ./tools/update_rtca_now.sh
 
 config:
 	$(PYTHON) tools/config.py

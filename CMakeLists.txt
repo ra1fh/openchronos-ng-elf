@@ -132,7 +132,7 @@ endif()
 add_custom_command(
     OUTPUT "${rtca_header}"
     COMMAND
-      bash tools/update_rtca_now.sh
+      /bin/sh tools/update_rtca_now.sh
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 

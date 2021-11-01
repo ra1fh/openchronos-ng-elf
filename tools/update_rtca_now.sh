@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 strip_zero()
 {
