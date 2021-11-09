@@ -31,8 +31,10 @@ set(module_config_files
 )
 
 set(rtca_header ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rtca_now.h)
+set(githash_header ${CMAKE_CURRENT_SOURCE_DIR}/modules/githash.h)
 set(source_files
     ${rtca_header}
+    ${githash_header}
     ${module_config_files}
     messagebus.c
     openchronos.c
@@ -70,6 +72,8 @@ set(source_files
     modules/stopwatch.c
     modules/accelerometer.c
     modules/buzztest.c
+    modules/flyback.c
+    modules/githash.c
 )
 add_executable(${openchronos_binary_filename} ${source_files})
 target_include_directories(${openchronos_binary_filename} PRIVATE .)
@@ -128,6 +132,13 @@ else()
         ${openchronos_hex_filename}
   )
 endif()
+
+add_custom_command(
+    OUTPUT "${githash_header}"
+    COMMAND
+      /bin/sh tools/update_githash.sh
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
 add_custom_command(
     OUTPUT "${rtca_header}"

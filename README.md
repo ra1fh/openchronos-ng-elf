@@ -45,12 +45,19 @@ Install:
 * python-urwid
 * mspdebug
 
-Compilation
------------
+Compilation with Make
+---------------------
 
-* make config
-* make clean
-* make
+* ```make config```
+* ```make clean```
+* ```make```
+
+Compilation with CMake
+----------------------
+
+* ```MSP430_TI=/usr/local cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-msp430-gcc-ti.cmake .```
+* ```make config```
+* ```make```
 
 Flashing the watch using USB FET
 --------------------------------
