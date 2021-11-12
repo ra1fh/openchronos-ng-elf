@@ -1,11 +1,11 @@
 # Toolchain for openchronos-ng-elf
 # Copyright (C) 2017 Alexandre Pretyman
 
-if(NOT EXISTS "$ENV{MSP430_TI}")
-  message(FATAL_ERROR "Set MSP430_TI environment variable to the toolchain root")
+if(DEFINED ENV{MSP430_TI})
+  set(MSP430_DIR "$ENV{MSP430_TI}" CACHE PATH "MSP430 root directory")
+else()
+  set(MSP430_DIR "/usr/local" CACHE PATH "MSP430 root directory")
 endif()
-
-set(MSP430_DIR "$ENV{MSP430_TI}" CACHE PATH "MSP430 root directory")
 
 include_directories(SYSTEM "${MSP430_DIR}/include")
 
