@@ -8,6 +8,7 @@ Changes:
 * Added githash module to show githash of current build
 * Switched to Python 3
 * Compilable with newer MSP430 GCC (9.3.1)
+* Removed Makefile in favor of CMake
 
 INTRODUCTION
 ============
@@ -28,34 +29,17 @@ The firmware code is also conceptually simpler and smaller which leaves room for
 INSTALLATION
 ============
 
-Compiler and debugger installation
-----------------------------------
+Prerequisites
+-------------
 
-Download and install the latest MSP430 GCC compiler from TI:
-
-* [https://www.ti.com/tool/MSP430-GCC-OPENSOURCE](https://www.ti.com/tool/MSP430-GCC-OPENSOURCE)
-
-Add the compiler to PATH
-
-Linux Prerequisites
--------------------
-
-Install:
-
+* [TI MSP430 GCC](https://www.ti.com/tool/MSP430-GCC-OPENSOURCE)
 * python-urwid
 * mspdebug
 
-Compilation with Make
----------------------
+Compilation
+-----------
 
-* ```make config```
-* ```make clean```
-* ```make```
-
-Compilation with CMake
-----------------------
-
-* ```MSP430_TI=/usr/local cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-msp430-gcc-ti.cmake .```
+* ```MSP430_TI=/opt/msp430-ti/ cmake .```
 * ```make config```
 * ```make```
 
@@ -85,7 +69,7 @@ Flashing the firmware using wireless (RFBSL)
 
 3) Program it using ChronosTool.py (Note that sudo might be required. Also repeat this step if it fails)<br>
 ```
-make install
+make radio-install
 ```
 
 4) Press Enter
@@ -97,14 +81,16 @@ make install
 Boot Menu
 ---------
 
-In openchronos-ng, the watch no longer boots directly into the clock firmware.
+In openchronos-ng, the watch no longer boots directly into the clock
+firmware.
 
 To enter the BOOT menu you can either:
 * Use the Reset menu
 * Reinsert the battery
 
-If the display shows BOOT you have successfully reset the watch and are now in the boot menu.
-Press the DOWN button to enter the wireless flash updater (RFBSL). Any other button will run the watch firmware.
+If the display shows BOOT you have successfully reset the watch and
+are now in the boot menu. Press the DOWN button to enter the wireless
+flash updater (RFBSL). Any other button will run the watch firmware.
 
 Useful links
 -------------
