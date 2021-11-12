@@ -30,10 +30,8 @@ set(module_config_files
     ${CMAKE_CURRENT_SOURCE_DIR}/modinit.c
 )
 
-set(rtca_header ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rtca_now.h)
 set(githash_header ${CMAKE_CURRENT_SOURCE_DIR}/modules/githash.h)
 set(source_files
-    ${rtca_header}
     ${githash_header}
     ${module_config_files}
     messagebus.c
@@ -137,13 +135,6 @@ add_custom_command(
     OUTPUT "${githash_header}"
     COMMAND
       /bin/sh tools/update_githash.sh
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
-add_custom_command(
-    OUTPUT "${rtca_header}"
-    COMMAND
-      /bin/sh tools/update_rtca_now.sh
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 

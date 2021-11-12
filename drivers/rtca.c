@@ -23,11 +23,17 @@
 **/
 
 #include "rtca.h"
-#include "rtca_now.h"
 
 #ifdef CONFIG_RTC_DST
 #include "rtc_dst.h"
 #endif
+
+#define DEFAULT_YEAR 2021
+#define DEFAULT_MON 1
+#define DEFAULT_DAY 1
+#define DEFAULT_DOW 5
+#define DEFAULT_HOUR 0
+#define DEFAULT_MIN 0
 
 /* 1. A year that is divisible by 4 is a leap year.
     Exception 1: a year that is divisible by 100 is not a leap year.
@@ -49,12 +55,12 @@ volatile enum rtca_tevent rtca_last_event;
 
 void rtca_init(void)
 {
-    rtca_time.year = COMPILE_YEAR;
-    rtca_time.mon = COMPILE_MON;
-    rtca_time.day = COMPILE_DAY;
-    rtca_time.dow = COMPILE_DOW;
-    rtca_time.hour = COMPILE_HOUR;
-    rtca_time.min = COMPILE_MIN;
+    rtca_time.year = DEFAULT_YEAR;
+    rtca_time.mon = DEFAULT_MON;
+    rtca_time.day = DEFAULT_DAY;
+    rtca_time.dow = DEFAULT_DOW;
+    rtca_time.hour = DEFAULT_HOUR;
+    rtca_time.min = DEFAULT_MIN;
     rtca_time.sec = 59; // So we can see the watch is working after reset
 
 #ifdef CONFIG_RTC_IRQ
