@@ -7,26 +7,16 @@ nohup.out
 *.swp
 cscope.out
 
-
-### CLion project files ###
-*.tgz
-.idea/
-
-### Firmware files ###
+### Build artifacts ###
+CMakeCache.txt
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+CMakeFiles/
+Makefile
+config.h
+doc/
+modinit.c
 openchronos.elf
 openchronos.txt
-
-### Build directories ###
-doc
-build
-_build
-cmake-build-debug
-
-### make artifacts ###
-config.h
-modinit.c
-drivers/rtca_now.h
 output.map
-openchronos.dep
-openchronos.dep.bak
-openchronos.cflags
+modules/githash.h
