@@ -23,9 +23,8 @@
 
 #include "menu.h"
 #include "drivers/display.h"
-#include "modules/githash.h"
 
-static char* githash = GITHASH;
+static char* githash = "GITHASH";
 
 static void githash_display(void)
 {

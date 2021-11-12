@@ -34,9 +34,7 @@ set(module_config_files
     ${CMAKE_CURRENT_SOURCE_DIR}/modinit.c
 )
 
-set(githash_header ${CMAKE_CURRENT_SOURCE_DIR}/modules/githash.h)
 set(source_files
-    ${githash_header}
     ${module_config_files}
     messagebus.c
     openchronos.c
@@ -77,9 +75,17 @@ set(source_files
     modules/flyback.c
     modules/githash.c
 )
+
+execute_process(
+    COMMAND sh "-c" "git rev-parse --short HEAD | tr 'a-z' 'A-Z'"
+    OUTPUT_VARIABLE GITHASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+add_compile_definitions(GITHASH=${GITHASH})
+
 add_executable(${openchronos_binary_filename} ${source_files})
 target_include_directories(${openchronos_binary_filename} PRIVATE .)
-
 
 find_package(PythonInterp)
 if(NOT PYTHONINTERP_FOUND)
@@ -134,13 +140,6 @@ else()
         ${openchronos_hex_filename}
   )
 endif()
-
-add_custom_command(
-    OUTPUT "${githash_header}"
-    COMMAND
-      /bin/sh tools/update_githash.sh
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
 
 find_program(mspdebug_executable "mspdebug")
 if(NOT mspdebug_executable)
