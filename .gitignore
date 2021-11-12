@@ -13,6 +13,7 @@ CMakeDoxyfile.in
 CMakeDoxygenDefaults.cmake
 CMakeFiles/
 Makefile
+cmake_install.cmake
 config.h
 doc/
 modinit.c
