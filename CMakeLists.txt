@@ -22,6 +22,10 @@
 
 cmake_minimum_required(VERSION 3.2)
 
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/toolchains/toolchain-msp430-gcc-ti.cmake)
+endif()
+
 project(openchronos-ng-elf C)
 
 set(openchronos_binary_filename "openchronos.elf")
