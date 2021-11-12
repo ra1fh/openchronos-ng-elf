@@ -33,6 +33,7 @@ Prerequisites
 -------------
 
 * [TI MSP430 GCC](https://www.ti.com/tool/MSP430-GCC-OPENSOURCE)
+* python 3
 * python-urwid
 * mspdebug
 
