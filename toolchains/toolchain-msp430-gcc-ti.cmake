@@ -24,6 +24,5 @@ set(CMAKE_OBJCOPY      "${toolchain_base_path}-objcopy" CACHE PATH "objcopy" )
 set(CMAKE_OBJDUMP      "${toolchain_base_path}-objdump" CACHE PATH "objdump" )
 set(CMAKE_RANLIB       "${toolchain_base_path}-ranlib"  CACHE PATH "ranlib" )
 
-set(CMAKE_C_FLAGS "-mmcu=cc430f6137 -Wall -fno-force-addr -finline-limit=1 -fno-schedule-insns -mhwmult=none -fshort-enums -Wl,-Map=output.map -O1 -g3 -gdwarf-2 -ggdb -L${MSP430_DIR}/include -Wl,--gc-sections" CACHE INTERNAL "")
-
+set(CMAKE_C_FLAGS "-mmcu=cc430f6137 -mhwmult=none -Os -g3 -gdwarf-2 -ggdb -Wall -Wl,-Map=output.map -Wl,--gc-sections -fdata-sections -ffunction-sections -finline-limit=1 -fno-force-addr -fno-schedule-insns -fshort-enums -L${MSP430_DIR}/include " CACHE INTERNAL "")
 
