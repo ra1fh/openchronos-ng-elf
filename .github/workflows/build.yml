@@ -1,0 +1,17 @@
+name: "Build with MSP430 GCC"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: build with msp430-elf-gcc
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: build
+      uses: ra1fh/msp430-gcc-action@v1

@@ -438,6 +438,7 @@ class OpenChronosApp(object):
 if __name__ == "__main__":
     App = OpenChronosApp()
     App.load_config()
-    App.main()
+    if sys.stdin.isatty():
+        App.main()
     App.save_config()
 

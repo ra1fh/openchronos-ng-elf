@@ -1,3 +1,5 @@
+[![Build with MSP430 GCC](https://github.com/ra1fh/openchronos-ng-elf/actions/workflows/build.yml/badge.svg)](https://github.com/ra1fh/openchronos-ng-elf/actions/workflows/build.yml)
+
 GENERAL INFORMATION 
 ===================
 
@@ -33,9 +35,11 @@ Prerequisites
 -------------
 
 * [TI MSP430 GCC](https://www.ti.com/tool/MSP430-GCC-OPENSOURCE)
-* python 3
-* python-urwid
+* git
 * mspdebug
+* python 3
+* python-sortedcontainers
+* python-urwid
 
 Compilation
 -----------
