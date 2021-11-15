@@ -199,7 +199,7 @@ static void crt_0042(void)
     /* Enable global interrupts */
     __enable_interrupt();
 
-    /* loop if no button is pressed, enter RFBSL if backlight is pressed */
+    /* loop if no button is pressed, enter RFBSL if down button is pressed */
     do {
         _BIS_SR(LPM3_bits | GIE);
         __no_operation();
