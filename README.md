@@ -8,6 +8,7 @@ Forked from: [github.com/BenjaminSoelberg/openchronos-ng-elf](https://github.com
 Changes:
 * Added flyback module (see flyback.c for some usage information)
 * Added githash module to show githash of current build
+* Added backlight module
 * Switched to Python 3
 * Compilable with newer MSP430 GCC (9.3.1)
 * Removed Makefile in favor of CMake

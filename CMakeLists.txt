@@ -74,6 +74,7 @@ set(source_files
     modules/buzztest.c
     modules/flyback.c
     modules/githash.c
+	modules/backlight.c
 )
 
 execute_process(
