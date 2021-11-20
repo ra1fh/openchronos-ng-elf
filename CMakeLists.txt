@@ -77,13 +77,25 @@ set(source_files
 	modules/backlight.c
 )
 
-execute_process(
-    COMMAND sh "-c" "git rev-parse --short HEAD | tr 'a-z' 'A-Z'"
+# use git to determine revision for githash module
+find_package(Git)
+if (Git_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
     OUTPUT_VARIABLE GITHASH
     OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+  )
+endif()
 
-add_compile_definitions(GITHASH=${GITHASH})
+# revision needs to be upper case for display functions
+string(TOUPPER "${GITHASH}" GITHASH)
+
+# fill to get 7 characters
+string(CONCAT GITHASH "${GITHASH}" "-------")
+string(SUBSTRING ${GITHASH} 0 7 GITHASH)
+
+# pass revision to githash module
+set_source_files_properties(modules/githash.c PROPERTIES COMPILE_FLAGS -DGITHASH=\\\"${GITHASH}\\\")
 
 add_executable(${openchronos_binary_filename} ${source_files})
 target_include_directories(${openchronos_binary_filename} PRIVATE .)
