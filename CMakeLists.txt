@@ -88,6 +88,13 @@ add_compile_definitions(GITHASH=${GITHASH})
 add_executable(${openchronos_binary_filename} ${source_files})
 target_include_directories(${openchronos_binary_filename} PRIVATE .)
 
+add_custom_command(TARGET ${openchronos_binary_filename} POST_BUILD
+  COMMAND
+    ${CMAKE_SIZE} "${openchronos_binary_filename}"
+  DEPENDS
+    ${openchronos_binary_filename}
+  )
+
 find_package(PythonInterp)
 if(NOT PYTHONINTERP_FOUND)
   message(WARNING "Python interpreter not found - Python tools disabled")

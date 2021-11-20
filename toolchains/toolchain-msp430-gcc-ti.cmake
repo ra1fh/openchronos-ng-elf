@@ -23,6 +23,7 @@ set(CMAKE_NM           "${toolchain_base_path}-nm"      CACHE PATH "nm" )
 set(CMAKE_OBJCOPY      "${toolchain_base_path}-objcopy" CACHE PATH "objcopy" )
 set(CMAKE_OBJDUMP      "${toolchain_base_path}-objdump" CACHE PATH "objdump" )
 set(CMAKE_RANLIB       "${toolchain_base_path}-ranlib"  CACHE PATH "ranlib" )
+set(CMAKE_SIZE         "${toolchain_base_path}-size"    CACHE PATH "size" )
 
 set(CMAKE_C_FLAGS "-mmcu=cc430f6137 -mhwmult=none -Os -g3 -gdwarf-2 -ggdb -Wall -Wl,-Map=output.map -Wl,--gc-sections -fdata-sections -ffunction-sections -finline-limit=1 -fno-force-addr -fno-schedule-insns -fshort-enums -L${MSP430_DIR}/include " CACHE INTERNAL "")
 
