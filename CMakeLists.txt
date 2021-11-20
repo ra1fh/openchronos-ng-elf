@@ -136,29 +136,54 @@ else()
         ${CMAKE_CURRENT_LIST_DIR}/tools/make_modinit.py
        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   )
-  set(openchronos_hex_filename "openchronos.txt")
+
+  # generate ihex with objcopy
+  set(openchronos_hex_filename "openchronos.hex")
   add_custom_command(
       OUTPUT
         ${openchronos_hex_filename}
       COMMAND
-        ${PYTHON_EXECUTABLE}
-        ${CMAKE_CURRENT_LIST_DIR}/tools/memory.py
-        -i ${openchronos_binary_filename}
-        -o ${openchronos_hex_filename}
+        ${CMAKE_OBJCOPY} -O ihex
+        ${openchronos_binary_filename}
+        ${openchronos_hex_filename}
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
       DEPENDS
         ${openchronos_binary_filename}
   )
-  add_custom_target(
-      radio-install
-      COMMAND
-        ${PYTHON_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/contrib/ChronosTool.py
-        rfbsl ${openchronos_hex_filename}
-      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-      DEPENDS
-        ${openchronos_hex_filename}
-  )
+
+  # generate ti-txt with srec_cat
+  find_program(srecord_executable "srec_cat")
+  if(NOT srecord_executable)
+    message(WARNING "srec_cat not found")
+  else()
+    set(openchronos_txt_filename "openchronos.txt")
+    add_custom_command(
+        OUTPUT
+          ${openchronos_txt_filename}
+        COMMAND
+          ${srecord_executable}
+          ${openchronos_hex_filename} -intel
+          -Output ${openchronos_txt_filename} -ti_txt
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        DEPENDS
+          ${openchronos_hex_filename}
+    )
+    add_custom_target(
+        ti-txt
+        DEPENDS
+          ${openchronos_txt_filename}
+    )
+    add_custom_target(
+        radio-install
+        COMMAND
+          ${PYTHON_EXECUTABLE}
+          ${CMAKE_CURRENT_SOURCE_DIR}/contrib/ChronosTool.py
+          rfbsl ${openchronos_txt_filename}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        DEPENDS
+          ${openchronos_txt_filename}
+    )
+  endif()
 endif()
 
 find_program(mspdebug_executable "mspdebug")
