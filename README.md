@@ -39,7 +39,6 @@ Prerequisites
 * git
 * mspdebug
 * python 3
-* python-sortedcontainers
 * python-urwid
 
 Compilation

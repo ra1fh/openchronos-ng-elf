@@ -7,12 +7,11 @@ import urwid.raw_display
 import sys
 
 import re, sys, random
-from sortedcontainers import SortedDict
 
 import modules
 import field_encodings
 
-DATA = SortedDict()
+DATA = {}
 WIDMAP = {}
 
 # GENERAL CONFIG ############################################################
