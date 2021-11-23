@@ -301,10 +301,10 @@ class OpenChronosApp(object):
         palette = [
             ('header',  'white',    'dark red',     'bold'),
             ('info',    'black',    'dark cyan'),
-            ('body',    'black',    'dark gray'),
+            ('body',    'black',    'light gray'),
             ('optsel',  'white',    'dark blue'),
             ('opt',     'black',    'light gray'),
-            ('optd',    'black',    'dark gray'),
+            ('optd',    'black',    'light gray'),
             ]
 
 
