@@ -72,7 +72,7 @@
 /* Driver */
 #include "drivers/display.h"
 #include "drivers/vti_as.h"
-#include "drivers/vti_ps.h"
+#include "drivers/ps.h"
 #include "drivers/radio.h"
 #include "drivers/buzzer.h"
 #include "drivers/ports.h"
@@ -113,12 +113,13 @@ void handle_events(void)
         menu_timeout_poll();
     }
 
-	// Event from : "driver/pressure"
-	if(ps_last_interrupt)
-	{
-		msg |= SYS_MSG_PS_INT;
-		ps_last_interrupt = 0;
-	}
+#ifdef CONFIG_MOD_ALTITUDE
+    // Event from : "driver/pressure"
+    if(ps_get_last_interrupt())
+    {
+        msg |= SYS_MSG_PS_INT;
+    }
+#endif
 
 #ifdef CONFIG_BATTERY_MONITOR
     /* drivers/battery */

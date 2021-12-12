@@ -27,13 +27,12 @@
 /* drivers */
 #include "drivers/rtca.h"
 #include "drivers/display.h"
-#include "drivers/vti_ps.h"
+#include "drivers/ps.h"
 
 #define USE_SERIES 0
 #define USE_LIBM 0
 #define USE_LUT 1
 
-extern uint8_t ps_ok;
 static uint8_t altitude_dots = 0;
 static uint8_t altitude_screen = 0;
 static uint16_t altitude_qnh_cur = 1013;
@@ -267,7 +266,7 @@ static void altitude_activated()
 
     sys_messagebus_register(&altitude_event, SYS_MSG_PS_INT);
 
-	if (ps_ok) {
+	if (ps_ok_get()) {
 		display_chars(0,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
 		display_chars(1,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
 		display_chars(2,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);

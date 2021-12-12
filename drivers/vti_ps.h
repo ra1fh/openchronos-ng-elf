@@ -36,74 +36,13 @@
 #ifndef VTI_PS_H_
 #define VTI_PS_H_
 
-// *************************************************************************************************
-// Include section
+extern void vti_ps_init(void);
+extern void vti_ps_start(void);
+extern void vti_ps_stop(void);
+extern uint32_t vti_ps_get_pa(void);
+extern uint16_t vti_ps_get_temp(void);
+extern void vti_finish_init(void);
 
-
-// *************************************************************************************************
-// Prototypes section
-extern void ps_init(void);
-extern void ps_start(void);
-extern void ps_stop(void);
-extern uint32_t ps_get_pa(void);
-extern uint16_t ps_get_temp(void);
-
-extern void init_pressure_table(void);
-extern void update_pressure_table(int16_t href, uint32_t p_meas, uint16_t t_meas);
-#ifndef CONFIG_FIXEDPOINT_MATH
-extern int16_t conv_pa_to_meter(uint32_t p_meas, uint16_t t_meas);
-#else
-extern int16_t conv_pa_to_altitude(uint32_t p_meas, uint16_t t_meas);
-#endif
-
-// *************************************************************************************************
-// Defines section
-
-// Port and pin resource for TWI interface to pressure sensor
-// SCL=PJ.3, SDA=PJ.2, DRDY=P2.6
-#define PS_TWI_IN            (PJIN)
-#define PS_TWI_OUT           (PJOUT)
-#define PS_TWI_DIR           (PJDIR)
-#define PS_TWI_REN           (PJREN)
-#define PS_SCL_PIN           (BIT3)
-#define PS_SDA_PIN           (BIT2)
-
-// Port, pin and interrupt resource for interrupt from acceleration sensor, DRDY=P2.6
-#define PS_INT_IN            (P2IN)
-#define PS_INT_OUT           (P2OUT)
-#define PS_INT_DIR           (P2DIR)
-#define PS_INT_IE            (P2IE)
-#define PS_INT_IES           (P2IES)
-#define PS_INT_IFG           (P2IFG)
-#define PS_INT_PIN           (BIT6)
-
-// TWI defines
-#define PS_TWI_WRITE        (0u)
-#define PS_TWI_READ         (1u)
-
-#define PS_TWI_SEND_START   (0u)
-#define PS_TWI_SEND_RESTART (1u)
-#define PS_TWI_SEND_STOP    (2u)
-#define PS_TWI_CHECK_ACK    (3u)
-
-#define PS_TWI_8BIT_ACCESS  (0u)
-#define PS_TWI_16BIT_ACCESS (1u)
-
-#define PS_TWI_SCL_HI       { PS_TWI_OUT |=  PS_SCL_PIN; }
-#define PS_TWI_SCL_LO       { PS_TWI_OUT &= ~PS_SCL_PIN; }
-#define PS_TWI_SDA_HI       { PS_TWI_OUT |=  PS_SDA_PIN; }
-#define PS_TWI_SDA_LO       { PS_TWI_OUT &= ~PS_SDA_PIN; }
-#define PS_TWI_SDA_IN       { PS_TWI_OUT |=  PS_SDA_PIN; PS_TWI_DIR &= ~PS_SDA_PIN; }
-#define PS_TWI_SDA_OUT      { PS_TWI_DIR |=  PS_SDA_PIN; }
-
-
-// *************************************************************************************************
-// Global Variable section
-
-volatile uint8_t ps_last_interrupt;
-
-// *************************************************************************************************
-// Extern section
-
+#define VTI_SCP1000_I2C_ADDR     (0x11)
 
 #endif /*VTI_PS_H_*/

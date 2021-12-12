@@ -53,6 +53,8 @@ set(source_files
     drivers/ports.c
     drivers/dsp.c
     drivers/radio.c
+    drivers/ps.c
+    drivers/ps_lib.c
     drivers/vti_ps.c
     drivers/adc12.c
     drivers/timer.c
@@ -74,7 +76,8 @@ set(source_files
     modules/buzztest.c
     modules/flyback.c
     modules/githash.c
-	modules/backlight.c
+    modules/backlight.c
+    modules/altitude.c
 )
 
 # use git to determine revision for githash module

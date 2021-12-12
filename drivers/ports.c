@@ -34,7 +34,9 @@
 #include "vti_as.h"
 #endif
 
-#include "vti_ps.h"
+#ifdef CONFIG_MOD_ALTITUDE
+#include "ps.h"
+#endif
 
 #define ALL_BUTTONS 0x1F
 
@@ -181,14 +183,11 @@ void PORT2_ISR(void)
         as_last_interrupt = 1;
     #endif
 
-	/* Check if pressure interrupt flag */
-    if ((P2IFG & PS_INT_PIN) == PS_INT_PIN)
-        ps_last_interrupt = 1;
+    #ifdef CONFIG_MOD_ALTITUDE
+	ps_store_last_interrupt();
+    #endif
 
     /* A write to the interrupt vector, automatically clears the
      latest interrupt */
     P2IV = 0x00;
 }
-
-
-
