@@ -85,15 +85,17 @@ void vti_ps_init(void)
 // **********************************************************************
 void vti_ps_start(void)
 {
+    // read pending data that may block further measurements. this can
+    // happen when data arrives after vti_ps_stop has been called.
+    vti_ps_read_register(0x7F, PS_I2C_8BIT_ACCESS);
+    vti_ps_read_register(0x80, PS_I2C_16BIT_ACCESS);
+
     // Enable DRDY IRQ on rising edge
     PS_INT_IFG &= ~PS_INT_PIN;
     PS_INT_IE |= PS_INT_PIN;
 
     // Start sampling data in ultra low power mode
     vti_ps_write_register(0x03, 0x0B);
-
-    // 200ms needed to have a working interrupt
-    // timer0_delay(200, LPM3_bits);
 }
 
 // **********************************************************************
