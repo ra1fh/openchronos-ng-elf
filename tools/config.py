@@ -171,6 +171,12 @@ DATA["CONFIG_PRESSURE_BUILD_VTI_PS"] = {
 	"help": "",
 }
 
+DATA["CONFIG_PRESSURE_BUILD_BOSCH_PS"] = {
+	"name": "Build driver for bosch pressure sensor (ez430-chronos v2)",
+	"default": True,
+	"help": "",
+}
+
 # AUTOMATICALLY GENERATED MODULE LIST ########################################
 
 DATA["TEXT_MODULES"] = {

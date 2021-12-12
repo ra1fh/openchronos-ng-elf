@@ -55,6 +55,7 @@ set(source_files
     drivers/radio.c
     drivers/ps.c
     drivers/ps_lib.c
+    drivers/bmp_ps.c
     drivers/vti_ps.c
     drivers/adc12.c
     drivers/timer.c
