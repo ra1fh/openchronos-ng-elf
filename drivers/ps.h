@@ -30,7 +30,6 @@ extern void ps_stop(void);
 extern void ps_store_last_interrupt(void);
 extern uint8_t ps_get_last_interrupt(void);
 extern uint32_t ps_get_pa(void);
-extern void ps_ok_set(uint8_t state);
 extern uint8_t ps_ok_get(void);
 
 #endif /* PS_H_ */

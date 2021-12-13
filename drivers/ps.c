@@ -32,12 +32,11 @@
 volatile uint8_t ps_last_interrupt;
 
 // Global flag for proper pressure sensor operation
-uint8_t ps_ok;
-
+static uint8_t ps_ok;
 // Global flag set if Bosch sensors are used
-uint8_t bmp_used;
+static uint8_t bmp_used;
 // Global flag set if VTI sensors are used
-uint8_t vti_used;
+static uint8_t vti_used;
 
 // **********************************************************************
 // @fn          ps_init
@@ -47,18 +46,18 @@ uint8_t vti_used;
 // **********************************************************************
 void ps_init(void)
 {
-#ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
-    bmp_ps_init();
+	ps_ok = 0;
 
-    if (ps_ok) {
+#ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
+    if (bmp_ps_init()) {
+		ps_ok = 1;
         bmp_used = 1;
 		return;
 	}
 #endif
 #ifdef CONFIG_PRESSURE_BUILD_VTI_PS
-	vti_ps_init();
-
-	if (ps_ok) {
+	if (vti_ps_init()) {
+		ps_ok = 1;
 		vti_used = 1;
 		return;
 	}
@@ -149,17 +148,6 @@ uint32_t ps_get_pa(void) {
 #endif
 	}
 	return 0;
-}
-
-// **********************************************************************
-// @fn          ps_ok_set
-// @brief       Set ps_ok state
-// @param       uint8_t          state
-// @return      none
-// **********************************************************************
-void ps_ok_set(uint8_t state)
-{
-	ps_ok = state;
 }
 
 // **********************************************************************

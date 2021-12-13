@@ -51,9 +51,6 @@ void ps_init_io(void)
     PS_I2C_OUT |= PS_SCL_PIN + PS_SDA_PIN; // SCL and SDA are outputs by default
     PS_I2C_DIR |= PS_SCL_PIN + PS_SDA_PIN; // SCL and SDA are outputs by default
 
-    // Reset global ps_ok flag
-    ps_ok_set(0);
-
     // 100msec delay to allow VDD stabilisation
     timer0_delay(100, LPM3_bits);
 }

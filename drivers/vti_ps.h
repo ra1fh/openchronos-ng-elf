@@ -36,7 +36,7 @@
 #ifndef VTI_PS_H_
 #define VTI_PS_H_
 
-extern void vti_ps_init(void);
+extern uint8_t vti_ps_init(void);
 extern void vti_ps_start(void);
 extern void vti_ps_stop(void);
 extern uint32_t vti_ps_get_pa(void);

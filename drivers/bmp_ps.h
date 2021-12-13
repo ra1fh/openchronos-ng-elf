@@ -36,7 +36,7 @@
 
 #include <stdint.h>
 
-extern void bmp_ps_init(void);
+extern uint8_t bmp_ps_init(void);
 extern void bmp_ps_get_cal_param(void);
 extern void bmp_ps_start(void);
 extern void bmp_ps_stop(void);

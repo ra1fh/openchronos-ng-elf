@@ -51,9 +51,9 @@ long bmp_param_b5;
 // @fn          bmp_ps_init
 // @brief       Init pressure sensor I/O
 // @param       none
-// @return      none
+// @return      1=success 0=failure
 // **********************************************************************
-void bmp_ps_init(void)
+uint8_t bmp_ps_init(void)
 {
     volatile uint8_t status;
 
@@ -64,10 +64,9 @@ void bmp_ps_init(void)
     if (status == BMP_085_CHIP_ID)
     {
         bmp_ps_get_cal_param();
-        ps_ok_set(1);
+        return 1;
     }
-    else
-        ps_ok_set(0);
+	return 0;
 }
 
 
