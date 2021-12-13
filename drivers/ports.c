@@ -34,6 +34,10 @@
 #include "vti_as.h"
 #endif
 
+#ifdef CONFIG_MOD_ALTITUDE
+#include "ps.h"
+#endif
+
 #define ALL_BUTTONS 0x1F
 
 /* contains buttons currently held down */
@@ -179,10 +183,11 @@ void PORT2_ISR(void)
         as_last_interrupt = 1;
     #endif
 
+    #ifdef CONFIG_MOD_ALTITUDE
+	ps_store_last_interrupt();
+    #endif
+
     /* A write to the interrupt vector, automatically clears the
      latest interrupt */
     P2IV = 0x00;
 }
-
-
-
