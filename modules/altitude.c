@@ -38,6 +38,14 @@ static uint8_t altitude_screen = 0;
 static uint16_t altitude_qnh_cur = 1013;
 static uint16_t altitude_qnh_tmp = 1013;
 
+enum {
+	ALTITUDE_SCREEN_METER,
+	ALTITUDE_SCREEN_FEET,
+	ALTITUDE_SCREEN_PA,
+	ALTITUDE_SCREEN_MAX
+};
+
+
 #if USE_SERIES
 
 /**********************************************************************
@@ -124,27 +132,27 @@ static void altitude_event(enum sys_message msg)
     float altf;
 
     altitude_dots = !altitude_dots;
-    display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(0, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
-    display_symbol(1, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(1, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
-    display_symbol(2, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_PA,    LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_PA,    LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_METER, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_METER, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_FEET,  LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_FEET,  LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
     p_meas = ps_get_pa();
 
     altf = altitude_calc(p_meas * 1.0, altitude_qnh_cur * 100.0);
     if (altf > 0) {
         alt = 145442.2 * altf;
-        _printf(0, LCD_SEG_L2_5_0, "%6u", alt);
+        _printf(ALTITUDE_SCREEN_FEET, LCD_SEG_L2_5_0, "%6u", alt);
         alt = 44330.8 * altf;
-        _printf(1, LCD_SEG_L2_5_0, "%6u", alt);
+        _printf(ALTITUDE_SCREEN_METER, LCD_SEG_L2_5_0, "%6u", alt);
     } else {
-        display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
-        display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+        display_chars(ALTITUDE_SCREEN_FEET, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+        display_chars(ALTITUDE_SCREEN_METER, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
     }
 
-    _printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
+    _printf(ALTITUDE_SCREEN_PA, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
 #endif
 
@@ -177,24 +185,24 @@ static void altitude_event(enum sys_message msg)
     int32_t alt;
 
     altitude_dots = !altitude_dots;
-    display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(0, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
-    display_symbol(1, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(1, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
-    display_symbol(2, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_PA,    LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_PA,    LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_METER, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_METER, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_FEET,  LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_FEET,  LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
     p_meas = ps_get_pa();
     alt = altitude_calc(p_meas / 10, altitude_qnh_cur);
     if (alt > 0) {
-        _printf(0, LCD_SEG_L2_5_0, "%6u", alt / alt_scale);
-        _printf(1, LCD_SEG_L2_5_0, "%6u", alt / alt_scale_meter);
+        _printf(ALTITUDE_SCREEN_FEET, LCD_SEG_L2_5_0, "%6u", alt / alt_scale);
+        _printf(ALTITUDE_SCREEN_METER, LCD_SEG_L2_5_0, "%6u", alt / alt_scale_meter);
     } else {
-        display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
-        display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+        display_chars(ALTITUDE_SCREEN_FEET, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+        display_chars(ALTITUDE_SCREEN_METER, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
     }
 
-    _printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
+    _printf(ALTITUDE_SCREEN_PA, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
 
 #endif
@@ -214,27 +222,27 @@ static void altitude_event(enum sys_message msg)
     float altf;
 
     altitude_dots = !altitude_dots;
-    display_symbol(0, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(0, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
-    display_symbol(1, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(1, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
-    display_symbol(2, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
-    display_symbol(2, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_PA,    LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_PA,    LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_METER, LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_METER, LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
+    display_symbol(ALTITUDE_SCREEN_FEET,  LCD_SYMB_ARROW_UP,   altitude_dots ? SEG_ON  : SEG_OFF);
+    display_symbol(ALTITUDE_SCREEN_FEET,  LCD_SYMB_ARROW_DOWN, altitude_dots ? SEG_OFF : SEG_ON );
 
     p_meas = ps_get_pa();
     altf = altitude_calc(p_meas * 1.0, altitude_qnh_cur * 100.0);
     if (altf > 0) {
         alti = altf;
-        _printf(1, LCD_SEG_L2_5_0, "%6u", alti);
+        _printf(ALTITUDE_SCREEN_METER, LCD_SEG_L2_5_0, "%6u", alti);
         altf = altf * 3.28084;
         alti = altf;
-        _printf(0, LCD_SEG_L2_5_0, "%6u", alti);
+        _printf(ALTITUDE_SCREEN_FEET, LCD_SEG_L2_5_0, "%6u", alti);
     } else {
-        display_chars(0, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
-        display_chars(1, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+        display_chars(ALTITUDE_SCREEN_METER, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
+        display_chars(ALTITUDE_SCREEN_FEET, LCD_SEG_L2_4_0, "UNDER", SEG_SET);
     }
 
-    _printf(2, LCD_SEG_L2_5_0, "%6u", p_meas);
+    _printf(ALTITUDE_SCREEN_PA, LCD_SEG_L2_5_0, "%6u", p_meas);
 }
 
 #endif
@@ -252,14 +260,14 @@ static void altitude_activated()
 	 */
     lcd_screens_create(4);
 
-	display_chars(0,  LCD_SEG_L1_3_0, "ALTI", SEG_SET);
-	display_symbol(0, LCD_UNIT_L1_FT, SEG_ON);
+	display_chars(ALTITUDE_SCREEN_PA,  LCD_SEG_L1_3_0, " HPA", SEG_SET);
+	display_symbol(ALTITUDE_SCREEN_PA, LCD_SEG_L2_DP, SEG_ON);
 
-	display_chars(1,  LCD_SEG_L1_3_0, "ALTI", SEG_SET);
-	display_symbol(1, LCD_UNIT_L1_M, SEG_ON);
+	display_chars(ALTITUDE_SCREEN_METER,  LCD_SEG_L1_3_0, "ALTI", SEG_SET);
+	display_symbol(ALTITUDE_SCREEN_METER, LCD_UNIT_L1_M, SEG_ON);
 
-	display_chars(2,  LCD_SEG_L1_3_0, " HPA", SEG_SET);
-	display_symbol(2, LCD_SEG_L2_DP, SEG_ON);
+	display_chars(ALTITUDE_SCREEN_FEET,  LCD_SEG_L1_3_0, "ALTI", SEG_SET);
+	display_symbol(ALTITUDE_SCREEN_FEET, LCD_UNIT_L1_FT, SEG_ON);
 
 	display_chars(3,  LCD_SEG_L1_3_0, " QNH", SEG_SET);
 	_printf(3, LCD_SEG_L2_3_0, "%4u", altitude_qnh_cur);
@@ -267,13 +275,13 @@ static void altitude_activated()
     sys_messagebus_register(&altitude_event, SYS_MSG_PS_INT);
 
 	if (ps_ok_get()) {
-		display_chars(0,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
-		display_chars(1,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
-		display_chars(2,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
+		display_chars(ALTITUDE_SCREEN_PA,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
+		display_chars(ALTITUDE_SCREEN_METER,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
+		display_chars(ALTITUDE_SCREEN_FEET,  LCD_SEG_L2_4_0, "OK   ", SEG_SET);
 	} else {
-		display_chars(0,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
-		display_chars(1,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
-		display_chars(2,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
+		display_chars(ALTITUDE_SCREEN_PA,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
+		display_chars(ALTITUDE_SCREEN_METER,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
+		display_chars(ALTITUDE_SCREEN_FEET,  LCD_SEG_L2_4_0, "ERR 0", SEG_SET);
 	}
 
 	/* enable ps */

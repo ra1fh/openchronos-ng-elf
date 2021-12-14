@@ -49,9 +49,9 @@ uint8_t vti_ps_write_register(uint8_t address, uint8_t data);
 // @fn          vti_ps_init
 // @brief       Init pressure sensor I/O
 // @param       none
-// @return      none
+// @return      1=success 0=failure
 // **********************************************************************
-void vti_ps_init(void)
+uint8_t vti_ps_init(void)
 {
     volatile uint8_t status, eeprom;
     __attribute__((unused)) volatile uint8_t success;
@@ -71,10 +71,9 @@ void vti_ps_init(void)
         // Check EEPROM checksum in DATARD8 register
         eeprom = vti_ps_read_register(0x7F, PS_I2C_8BIT_ACCESS);
         if (eeprom == 0x01)
-            ps_ok_set(1);
-        else
-            ps_ok_set(0);
+            return 1;
     }
+	return 0;
 }
 
 // **********************************************************************
@@ -94,8 +93,8 @@ void vti_ps_start(void)
     PS_INT_IFG &= ~PS_INT_PIN;
     PS_INT_IE |= PS_INT_PIN;
 
-    // Start sampling data in ultra low power mode
-    vti_ps_write_register(0x03, 0x0B);
+    // Start sampling triggered mode
+    vti_ps_write_register(0x03, 0x0C);
 }
 
 // **********************************************************************
@@ -157,6 +156,9 @@ uint32_t vti_ps_get_pa(void)
 
     // Convert decimal value to Pa
     data = (data >> 2);
+
+	// Start next measurement
+    vti_ps_write_register(0x03, 0x0C);
 
     return (data);
 }
