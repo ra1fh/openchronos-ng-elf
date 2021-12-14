@@ -93,8 +93,8 @@ void vti_ps_start(void)
     PS_INT_IFG &= ~PS_INT_PIN;
     PS_INT_IE |= PS_INT_PIN;
 
-    // Start sampling data in ultra low power mode
-    vti_ps_write_register(0x03, 0x0B);
+    // Start sampling triggered mode
+    vti_ps_write_register(0x03, 0x0C);
 }
 
 // **********************************************************************
@@ -156,6 +156,9 @@ uint32_t vti_ps_get_pa(void)
 
     // Convert decimal value to Pa
     data = (data >> 2);
+
+	// Start next measurement
+    vti_ps_write_register(0x03, 0x0C);
 
     return (data);
 }
