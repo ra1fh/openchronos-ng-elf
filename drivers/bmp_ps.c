@@ -105,6 +105,9 @@ void bmp_ps_get_cal_param(void)
 // **********************************************************************
 void bmp_ps_start(void)
 {
+    PS_INT_IFG &= ~PS_INT_PIN;
+    PS_INT_IE |= PS_INT_PIN;
+
     // Start sampling temperature
     bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
 }
@@ -194,6 +197,8 @@ uint32_t bmp_ps_get_pa(void)
     x2 = (pressure * BMP_SMD500_PARAM_MH) / 65536;
     result = pressure + (x1 + x2 + BMP_SMD500_PARAM_MI) / 16;   // pressure in Pa
 
+	// start next measurement
+	bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
     return (result);
 }
 
