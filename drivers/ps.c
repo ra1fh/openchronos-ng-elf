@@ -46,6 +46,8 @@ static uint8_t vti_used;
 // **********************************************************************
 void ps_init(void)
 {
+	bmp_used = 0;
+	vti_used = 0;
 	ps_ok = 0;
 
 #ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
@@ -128,6 +130,18 @@ uint8_t ps_get_last_interrupt(void)
 		return 1;
 	} else {
 		return 0;
+	}
+}
+
+void ps_handle_interrupt(void) {
+	if (bmp_used) {
+#ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
+		bmp_ps_handle_interrupt();
+#endif
+	} else {
+#ifdef CONFIG_PRESSURE_BUILD_VTI_PS
+		vti_ps_handle_interrupt();
+#endif
 	}
 }
 

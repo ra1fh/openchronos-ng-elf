@@ -42,6 +42,8 @@
 #include "vti_ps.h"
 #include "timer.h"
 
+uint32_t vti_ps_pa;
+
 uint16_t vti_ps_read_register(uint8_t address, uint8_t mode);
 uint8_t vti_ps_write_register(uint8_t address, uint8_t data);
 
@@ -145,6 +147,17 @@ uint16_t vti_ps_read_register(uint8_t address, uint8_t mode)
 // **********************************************************************
 uint32_t vti_ps_get_pa(void)
 {
+	return vti_ps_pa;
+}
+
+// **********************************************************************
+// @fn          vti_ps_get_pa
+// @brief       Read out pressure in Pa. Range is 30000 .. 120000 Pa.
+// @param       none
+// @return      uint32_t             15-bit pressure sensor value (Pa)
+// **********************************************************************
+void vti_ps_handle_interrupt(void)
+{
     volatile uint32_t data = 0;
 
     // Get 3 MSB from DATARD8 register
@@ -160,7 +173,7 @@ uint32_t vti_ps_get_pa(void)
 	// Start next measurement
     vti_ps_write_register(0x03, 0x0C);
 
-    return (data);
+    vti_ps_pa = data;
 }
 
 // **********************************************************************

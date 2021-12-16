@@ -47,6 +47,8 @@ bmp_085_calibration_param_t bmp_cal_param;
 // Paramater used by temperature and pressure measurement
 long bmp_param_b5;
 
+uint32_t bmp_ps_pa;
+
 // **********************************************************************
 // @fn          bmp_ps_init
 // @brief       Init pressure sensor I/O
@@ -109,7 +111,7 @@ void bmp_ps_start(void)
     PS_INT_IE |= PS_INT_PIN;
 
     // Start sampling temperature
-    bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
+    bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_P_MEASURE);
 }
 
 // **********************************************************************
@@ -155,6 +157,17 @@ uint16_t bmp_ps_read_register(uint8_t address, uint8_t mode)
 // **********************************************************************
 uint32_t bmp_ps_get_pa(void)
 {
+	return bmp_ps_pa;
+}
+
+// **********************************************************************
+// @fn          bmp_handle_interrupt
+// @brief       handle last interrupt
+// @param       none
+// @return      uint8_t      1=new result available 0=no new result
+// **********************************************************************
+void bmp_ps_handle_interrupt(void)
+{
     uint16_t up;            // uncompensated pressure
     int32_t pressure, x1, x2, x3, b3, b6;
     uint32_t result, b4, b7;
@@ -197,9 +210,11 @@ uint32_t bmp_ps_get_pa(void)
     x2 = (pressure * BMP_SMD500_PARAM_MH) / 65536;
     result = pressure + (x1 + x2 + BMP_SMD500_PARAM_MI) / 16;   // pressure in Pa
 
+	// store result
+	bmp_ps_pa = result;
+
 	// start next measurement
-	bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
-    return (result);
+	bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_P_MEASURE);
 }
 
 // **********************************************************************

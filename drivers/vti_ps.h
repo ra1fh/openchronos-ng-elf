@@ -40,6 +40,7 @@ extern uint8_t vti_ps_init(void);
 extern void vti_ps_start(void);
 extern void vti_ps_stop(void);
 extern uint32_t vti_ps_get_pa(void);
+extern void vti_ps_handle_interrupt(void);
 extern uint16_t vti_ps_get_temp(void);
 extern void vti_finish_init(void);
 

@@ -117,7 +117,8 @@ void handle_events(void)
     // Event from : "driver/pressure"
     if(ps_get_last_interrupt())
     {
-        msg |= SYS_MSG_PS_INT;
+		ps_handle_interrupt();
+		msg |= SYS_MSG_PS_INT;
     }
 #endif
 
