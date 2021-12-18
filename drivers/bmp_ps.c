@@ -48,6 +48,9 @@ bmp_085_calibration_param_t bmp_cal_param;
 long bmp_param_b5;
 
 uint32_t bmp_ps_pa;
+uint16_t bmp_ps_temp;
+
+uint8_t bmp_ps_last_command;
 
 // **********************************************************************
 // @fn          bmp_ps_init
@@ -59,6 +62,7 @@ uint8_t bmp_ps_init(void)
 {
     volatile uint8_t status;
 
+	bmp_ps_last_command = 0;
     ps_init_io();
 
     // Read ChipID to check if communication is working
@@ -111,7 +115,8 @@ void bmp_ps_start(void)
     PS_INT_IE |= PS_INT_PIN;
 
     // Start sampling temperature
-    bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_P_MEASURE);
+	bmp_ps_last_command = BMP_085_T_MEASURE;
+    bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
 }
 
 // **********************************************************************
@@ -161,12 +166,23 @@ uint32_t bmp_ps_get_pa(void)
 }
 
 // **********************************************************************
-// @fn          bmp_handle_interrupt
-// @brief       handle last interrupt
+// @fn          bmp_ps_get_temp
+// @brief       Read out temperature.
 // @param       none
-// @return      uint8_t      1=new result available 0=no new result
+// @return      uint16_t      13-bit temperature value in xx.x K format
 // **********************************************************************
-void bmp_ps_handle_interrupt(void)
+uint16_t bmp_ps_get_temp(void)
+{
+	return bmp_ps_temp;
+}
+
+// **********************************************************************
+// @fn          bmp_ps_read_pressure
+// @brief       Read out pressure
+// @param       none
+// @return      none
+// **********************************************************************
+void bmp_ps_read_pressure(void)
 {
     uint16_t up;            // uncompensated pressure
     int32_t pressure, x1, x2, x3, b3, b6;
@@ -212,18 +228,15 @@ void bmp_ps_handle_interrupt(void)
 
 	// store result
 	bmp_ps_pa = result;
-
-	// start next measurement
-	bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_P_MEASURE);
 }
 
 // **********************************************************************
-// @fn          bmp_ps_get_temp
+// @fn          bmp_ps_read_temp
 // @brief       Read out temperature.
 // @param       none
-// @return      uint16_t      13-bit temperature value in xx.x K format
+// @return      none
 // **********************************************************************
-uint16_t bmp_ps_get_temp(void)
+uint16_t bmp_ps_read_temp(void)
 {
     uint16_t ut;
     int32_t x1, x2;
@@ -247,4 +260,30 @@ uint16_t bmp_ps_get_temp(void)
         kelvin = temperature + 2732;
 
     return (kelvin);
+}
+
+// **********************************************************************
+// @fn          bmp_handle_interrupt
+// @brief       handle last interrupt
+// @param       none
+// @return      1=new ps value 0=no ps value
+// **********************************************************************
+uint8_t bmp_ps_handle_interrupt(void)
+{
+	switch (bmp_ps_last_command) {
+	case BMP_085_P_MEASURE:
+		bmp_ps_read_pressure();
+		bmp_ps_last_command = BMP_085_T_MEASURE;
+		bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
+		return 1;
+		break;
+	case BMP_085_T_MEASURE:
+		bmp_ps_read_temp();
+		// start next measurement
+		bmp_ps_last_command = BMP_085_P_MEASURE;
+		bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_P_MEASURE);
+		return 0;
+		break;
+	}
+	return 0;
 }

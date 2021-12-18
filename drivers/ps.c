@@ -133,16 +133,17 @@ uint8_t ps_get_last_interrupt(void)
 	}
 }
 
-void ps_handle_interrupt(void) {
+uint8_t ps_handle_interrupt(void) {
 	if (bmp_used) {
 #ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
-		bmp_ps_handle_interrupt();
+		return bmp_ps_handle_interrupt();
 #endif
 	} else {
 #ifdef CONFIG_PRESSURE_BUILD_VTI_PS
-		vti_ps_handle_interrupt();
+		return vti_ps_handle_interrupt();
 #endif
 	}
+	return 0;
 }
 
 // **********************************************************************

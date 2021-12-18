@@ -115,10 +115,10 @@ void handle_events(void)
 
 #ifdef CONFIG_MOD_ALTITUDE
     // Event from : "driver/pressure"
-    if(ps_get_last_interrupt())
-    {
-		ps_handle_interrupt();
-		msg |= SYS_MSG_PS_INT;
+    if(ps_get_last_interrupt()) {
+		if (ps_handle_interrupt()) {
+			msg |= SYS_MSG_PS_INT;
+		}
     }
 #endif
 

@@ -154,9 +154,9 @@ uint32_t vti_ps_get_pa(void)
 // @fn          vti_ps_get_pa
 // @brief       Read out pressure in Pa. Range is 30000 .. 120000 Pa.
 // @param       none
-// @return      uint32_t             15-bit pressure sensor value (Pa)
+// @return      uint8_t    1=new ps value  0=no ps value
 // **********************************************************************
-void vti_ps_handle_interrupt(void)
+uint8_t vti_ps_handle_interrupt(void)
 {
     volatile uint32_t data = 0;
 
@@ -174,6 +174,8 @@ void vti_ps_handle_interrupt(void)
     vti_ps_write_register(0x03, 0x0C);
 
     vti_ps_pa = data;
+
+	return 1;
 }
 
 // **********************************************************************

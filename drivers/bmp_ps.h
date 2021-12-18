@@ -43,7 +43,7 @@ extern void bmp_ps_stop(void);
 extern uint16_t bmp_ps_read_register(uint8_t address, uint8_t mode);
 extern uint8_t bmp_ps_write_register(uint8_t address, uint8_t data);
 extern uint32_t bmp_ps_get_pa(void);
-extern void bmp_ps_handle_interrupt(void);
+extern uint8_t bmp_ps_handle_interrupt(void);
 extern uint16_t bmp_ps_get_temp(void);
 
 // Bosch BMP085 defines
