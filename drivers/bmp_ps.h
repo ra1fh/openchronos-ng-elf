@@ -38,8 +38,7 @@
 
 extern uint8_t bmp_ps_init(void);
 extern void bmp_ps_get_cal_param(void);
-extern void bmp_ps_start(void);
-extern void bmp_ps_stop(void);
+extern void bmp_ps_measure(void);
 extern uint16_t bmp_ps_read_register(uint8_t address, uint8_t mode);
 extern uint8_t bmp_ps_write_register(uint8_t address, uint8_t data);
 extern uint32_t bmp_ps_get_pa(void);

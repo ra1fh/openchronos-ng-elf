@@ -27,6 +27,7 @@
 extern void ps_init(void);
 extern void ps_start(void);
 extern void ps_stop(void);
+extern void ps_measure(void);
 extern void ps_store_last_interrupt(void);
 extern uint8_t ps_get_last_interrupt(void);
 extern uint8_t ps_handle_interrupt(void);

@@ -37,6 +37,8 @@ static uint8_t ps_ok;
 static uint8_t bmp_used;
 // Global flag set if VTI sensors are used
 static uint8_t vti_used;
+// Count clients interested in pressure measurements
+static uint8_t ps_users;
 
 // **********************************************************************
 // @fn          ps_init
@@ -49,6 +51,7 @@ void ps_init(void)
 	bmp_used = 0;
 	vti_used = 0;
 	ps_ok = 0;
+	ps_users = 0;
 
 #ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
     if (bmp_ps_init()) {
@@ -67,6 +70,28 @@ void ps_init(void)
 }
 
 // **********************************************************************
+// @fn          ps_measure
+// @brief       Start measurement in one-shot mode
+// @param       none
+// @return      none
+// **********************************************************************
+void ps_measure(void)
+{
+	if (ps_users == 0)
+		return;
+
+	if (bmp_used) {
+#ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
+		bmp_ps_measure();
+#endif
+	} else {
+#ifdef CONFIG_PRESSURE_BUILD_VTI_PS
+		vti_ps_measure();
+#endif
+	}
+}
+
+// **********************************************************************
 // @fn          ps_start
 // @brief       Start pressure sensor I/O
 // @param       none
@@ -74,15 +99,7 @@ void ps_init(void)
 // **********************************************************************
 void ps_start(void)
 {
-	if (bmp_used) {
-#ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
-		bmp_ps_start();
-#endif
-	} else {
-#ifdef CONFIG_PRESSURE_BUILD_VTI_PS
-		vti_ps_start();
-#endif
-	}
+	ps_users++;
 }
 
 // **********************************************************************
@@ -93,15 +110,7 @@ void ps_start(void)
 // **********************************************************************
 void ps_stop(void)
 {
-	if (bmp_used) {
-#ifdef CONFIG_PRESSURE_BUILD_BOSCH_PS
-		bmp_ps_stop();
-#endif
-	} else {
-#ifdef CONFIG_PRESSURE_BUILD_VTI_PS
-		vti_ps_stop();
-#endif
-	}
+	ps_users--;
 }
 
 // **********************************************************************

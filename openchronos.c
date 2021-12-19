@@ -120,6 +120,10 @@ void handle_events(void)
 			msg |= SYS_MSG_PS_INT;
 		}
     }
+
+	if (msg & SYS_MSG_RTC_SECOND) {
+		ps_measure();
+	}
 #endif
 
 #ifdef CONFIG_BATTERY_MONITOR

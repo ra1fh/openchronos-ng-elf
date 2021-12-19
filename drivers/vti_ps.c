@@ -43,6 +43,7 @@
 #include "timer.h"
 
 uint32_t vti_ps_pa;
+uint8_t vti_ps_last_command;
 
 uint16_t vti_ps_read_register(uint8_t address, uint8_t mode);
 uint8_t vti_ps_write_register(uint8_t address, uint8_t data);
@@ -58,6 +59,7 @@ uint8_t vti_ps_init(void)
     volatile uint8_t status, eeprom;
     __attribute__((unused)) volatile uint8_t success;
 
+	vti_ps_last_command = 0;
     ps_init_io();
 
     // Reset pressure sensor -> powerdown sensor
@@ -79,13 +81,16 @@ uint8_t vti_ps_init(void)
 }
 
 // **********************************************************************
-// @fn          vti_ps_start
+// @fn          vti_ps_measure
 // @brief       Init pressure sensor registers and start sampling
 // @param       none
-// @return      uint8_t     1=Sensor started, 0=Sensor did not start
+// @return      none
 // **********************************************************************
-void vti_ps_start(void)
+void vti_ps_measure(void)
 {
+	if (vti_ps_last_command != 0)
+		return;
+
     // read pending data that may block further measurements. this can
     // happen when data arrives after vti_ps_stop has been called.
     vti_ps_read_register(0x7F, PS_I2C_8BIT_ACCESS);
@@ -97,22 +102,7 @@ void vti_ps_start(void)
 
     // Start sampling triggered mode
     vti_ps_write_register(0x03, 0x0C);
-}
-
-// **********************************************************************
-// @fn          vti_ps_stop
-// @brief       Power down pressure sensor
-// @param       none
-// @return      none
-// **********************************************************************
-void vti_ps_stop(void)
-{
-    // Disable DRDY IRQ
-    PS_INT_IE  &= ~PS_INT_PIN;
-    PS_INT_IFG &= ~PS_INT_PIN;
-
-    // Put sensor to standby
-    vti_ps_write_register(0x03, 0x00);
+	vti_ps_last_command = 0x0C;
 }
 
 // **********************************************************************
@@ -170,11 +160,15 @@ uint8_t vti_ps_handle_interrupt(void)
     // Convert decimal value to Pa
     data = (data >> 2);
 
-	// Start next measurement
-    vti_ps_write_register(0x03, 0x0C);
-
     vti_ps_pa = data;
 
+    // Disable DRDY IRQ
+    PS_INT_IE  &= ~PS_INT_PIN;
+    PS_INT_IFG &= ~PS_INT_PIN;
+
+    // Put sensor to standby (may not be necessary in triggered mode)
+    vti_ps_write_register(0x03, 0x00);
+	vti_ps_last_command = 0;
 	return 1;
 }
 

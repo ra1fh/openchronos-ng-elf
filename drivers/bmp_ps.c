@@ -49,6 +49,7 @@ long bmp_param_b5;
 
 uint32_t bmp_ps_pa;
 uint16_t bmp_ps_temp;
+uint32_t bmp_ps_err;
 
 uint8_t bmp_ps_last_command;
 
@@ -63,6 +64,7 @@ uint8_t bmp_ps_init(void)
     volatile uint8_t status;
 
 	bmp_ps_last_command = 0;
+	bmp_ps_err = 0;
     ps_init_io();
 
     // Read ChipID to check if communication is working
@@ -104,30 +106,22 @@ void bmp_ps_get_cal_param(void)
 }
 
 // **********************************************************************
-// @fn          bmp_ps_start
+// @fn          bmp_ps_measure
 // @brief       Init pressure sensor registers and start sampling
 // @param       none
 // @return      none
 // **********************************************************************
-void bmp_ps_start(void)
+void bmp_ps_measure(void)
 {
+	if (bmp_ps_last_command != 0)
+		return;
+
     PS_INT_IFG &= ~PS_INT_PIN;
     PS_INT_IE |= PS_INT_PIN;
 
     // Start sampling temperature
 	bmp_ps_last_command = BMP_085_T_MEASURE;
     bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
-}
-
-// **********************************************************************
-// @fn          bmp_ps_stop
-// @brief       Power down pressure sensor
-// @param       none
-// @return      none
-// **********************************************************************
-void bmp_ps_stop(void)
-{
-    // Nothing to be done, sensor is in powerdown after measurement
 }
 
 // **********************************************************************
@@ -272,18 +266,20 @@ uint8_t bmp_ps_handle_interrupt(void)
 {
 	switch (bmp_ps_last_command) {
 	case BMP_085_P_MEASURE:
+		PS_INT_IE  &= ~PS_INT_PIN;
+		PS_INT_IFG &= ~PS_INT_PIN;
 		bmp_ps_read_pressure();
-		bmp_ps_last_command = BMP_085_T_MEASURE;
-		bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_T_MEASURE);
+		bmp_ps_last_command = 0;
 		return 1;
 		break;
 	case BMP_085_T_MEASURE:
 		bmp_ps_read_temp();
-		// start next measurement
 		bmp_ps_last_command = BMP_085_P_MEASURE;
 		bmp_ps_write_register(BMP_085_CTRL_MEAS_REG, BMP_085_P_MEASURE);
 		return 0;
 		break;
 	}
+	// should not happen
+	bmp_ps_err++;
 	return 0;
 }
