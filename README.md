@@ -9,7 +9,7 @@ Changes:
 * Added flyback module (see flyback.c for some usage information)
 * Added githash module to show githash of current build
 * Added backlight module
-* Added altitude module (currently only VTI sensor/black PCB is working)
+* Added altitude module (black and white PCB pressure sensors supported)
 * Switched to Python 3
 * Compilable with newer MSP430 GCC (9.3.1)
 * Removed Makefile in favor of CMake
