@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.13)
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/toolchains/toolchain-msp430-gcc-ti.cmake)
@@ -103,6 +103,7 @@ set_source_files_properties(modules/githash.c PROPERTIES COMPILE_FLAGS -DGITHASH
 
 add_executable(${openchronos_binary_filename} ${source_files})
 target_include_directories(${openchronos_binary_filename} PRIVATE .)
+target_link_libraries(${openchronos_binary_filename} m)
 
 add_custom_command(TARGET ${openchronos_binary_filename} POST_BUILD
   COMMAND
