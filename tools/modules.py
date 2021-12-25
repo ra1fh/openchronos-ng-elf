@@ -76,7 +76,10 @@ def read_config():
 
             # Special treatment for booleans
             if item['type'] == "bool":
-                item['default'] = bool(item['default'])
+                if item['default'].lower() == 'true':
+                    item['default'] = True
+                else:
+                    item['default'] = False
 
             DATA.append( ("CONFIG_MOD_%s" % (section), item) )
             if sectNr == 0 and section != parent:
