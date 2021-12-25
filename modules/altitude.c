@@ -29,10 +29,6 @@
 #include "drivers/display.h"
 #include "drivers/ps.h"
 
-#define USE_SERIES 0
-#define USE_LIBM 0
-#define USE_LUT 1
-
 static uint8_t altitude_dots = 0;
 static uint8_t altitude_screen = 0;
 static uint16_t altitude_qnh_cur = 1013;
@@ -46,7 +42,7 @@ enum {
 };
 
 
-#if USE_SERIES
+#ifdef CONFIG_MOD_ALTITUDE_SERIES
 
 /**********************************************************************
  Altitude Calculation
@@ -156,7 +152,7 @@ static void altitude_event(enum sys_message msg)
 }
 #endif
 
-#if USE_LUT
+#ifdef CONFIG_MOD_ALTITUDE_LUT
 
 #include "altitude.h"
 
@@ -207,7 +203,7 @@ static void altitude_event(enum sys_message msg)
 
 #endif
 
-#if USE_LIBM
+#ifdef CONFIG_MOD_ALTITUDE_LIBM
 
 #include <math.h>
 
